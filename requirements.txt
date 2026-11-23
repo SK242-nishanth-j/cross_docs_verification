@@ -1,0 +1,4 @@
+# Needs Python 3.10 or newer. Tested with rapidfuzz 3.14.6 on Python 3.12.
+rapidfuzz>=3.0,<4
+# Only for cross_verify_llm.py (AWS Bedrock). cross_verify.py does not need it.
+boto3>=1.34,<2

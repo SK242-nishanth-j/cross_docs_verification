@@ -1,0 +1,19 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+venv/
+
+# Tool caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Local settings and secrets (AWS keys for cross_verify_llm.py)
+.env
+.env.*
+
+# Generated reports
+benchmark_results.json
