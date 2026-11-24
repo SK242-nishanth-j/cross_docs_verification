@@ -1,0 +1,555 @@
+{
+  "Document Type": "Application for Education Loan",
+  "Lender": "Avanse Financial Services Ltd",
+  "Lender Address": "Times Square Building, E wing, 4th Floor, Opp. Mittal Industrial Estate, Gamdevi, Andheri-Kurla Road, Marol, Andheri (East), Mumbai 400059, Maharashtra, India",
+  "T": "(+91) 22-6859 9999",
+  "F": "(+91) 22-6859 9900",
+  "W": "www.avanse.com",
+  "CIN No.": "U67120MH1992PLC068060",
+  "Total Pages": 18,
+
+  "Office Use Details": {
+    "Branch Location": "CHENNAI",
+    "Lead Id": "70183842203",
+    "Application No/ SL No": "CHEEE01156901",
+    "Date": "16-Jun-2026",
+    "Sourcing Code": "MARKETING",
+    "Loan Amount (Rs)": "5100000"
+  },
+
+  "Applicant": {
+    "Applicant Photo": "Present",
+    "Profile": "Mr",
+    "Name": {
+      "First Name": "Alex",
+      "Middle Name": null,
+      "Last Name": "Devasirvadham"
+    },
+    "Father/ Spouse Name": {
+      "First Name": "Devasirvadham",
+      "Middle Name": null,
+      "Last Name": "Devasirvadham"
+    },
+    "Mother's Name": {
+      "First Name": "Priyadarshini",
+      "Middle Name": null,
+      "Last Name": "Priyadarshini"
+    },
+    "Date of Birth": "19-Sep-2000",
+    "City of Birth": null,
+    "Gender": "Male",
+    "Marital Status": "SINGLE",
+    "No. of Dependants": "1",
+    "PAN No": "ECMPA1147N",
+    "Aadhar No": {
+      "Yes": true,
+      "Number": "4050"
+    },
+    "UID Enrollment No": null,
+    "I agree to update Aadhar on my loan account within 182 days of loan disbursement": false,
+    "CKYC": null,
+    "Passport/ DL. No": "AN599907",
+    "Date of Expiry": "5-Feb-2036",
+    "Voter ID": null,
+    "Citizenship": "Indian",
+    "Mobile No": "9952482282",
+    "Email ID": "broly1909@gmail.com",
+    "Current Address": {
+      "Address": "No.33 , kk nagar , chittoor road tiruttani",
+      "Landmark": "tiruvallur",
+      "City": "TIRUVALLUR",
+      "State": "Tamil Nadu",
+      "District": null,
+      "Pincode": "631209",
+      "Country": "INDIA"
+    },
+    "Permanent Address": {
+      "Same as Above": true,
+      "Address": "No.33 , kk nagar , chittoor road tiruttani",
+      "Landmark": "tiruvallur",
+      "City": "TIRUVALLUR",
+      "State": "Tamil Nadu",
+      "District": null,
+      "Pincode": "631209",
+      "Country": "INDIA"
+    },
+    "Landline No": null,
+    "Education Details": [
+      {
+        "Education Details": "10th",
+        "Completed": true,
+        "% Marks / CGPA": "95.0",
+        "School / College / University": "10th State Board / SSC(10th) State Board"
+      },
+      {
+        "Education Details": "12th",
+        "Completed": true,
+        "% Marks / CGPA": "72.75",
+        "School / College / University": "12th State Board / HSC(12th) State Board"
+      },
+      {
+        "Education Details": "Under_Graduate",
+        "Completed": true,
+        "% Marks / CGPA": "73.91",
+        "School / College / University": "ANNA UNIVERSITY / ANNA UNIVERSITY"
+      }
+    ],
+    "Entrance Test": [
+      {
+        "Name of Entrance Test": "IELTS",
+        "Score": "6.5"
+      }
+    ],
+    "Relationship": {
+      "Relationship of Applicant/ Co-Applicant with Avanse": "No",
+      "Name & Relationship with Avanse Official": null,
+      "PEP/Relative or Close Associate of PEP": "No"
+    }
+  },
+
+  "Course Details": {
+    "Admission Status": "CONFIRMED",
+    "University": "UNIVERSITY OF EUROPE FOR APPLIED SCIENCES",
+    "College Name & Address": "UNIVERSITY OF EUROPE FOR APPLIED SCIENCES",
+    "City": null,
+    "State": null,
+    "Pincode": null,
+    "Tel": null,
+    "URL/Web": null,
+    "Country": "GERMANY",
+    "Reason for selection of the University/ Institute": null,
+    "Contact Person at Institute (For Admission Verification)": {
+      "Contact No": "ADMISSION",
+      "Email ID": "student.advice@ue-germany.com"
+    },
+    "Course Name": "MSc Data Science",
+    "Course Category": "Post Graduation",
+    "Course Duration": "24",
+    "Course Type": "Full Time",
+    "Course Stream": "Science",
+    "Course Start Date": "01-09-2026",
+    "Course End Date": "31-08-2028",
+    "Expected Annual Income Post Completion": null,
+    "Institute Ranking (if any)": null
+  },
+
+  "Education Loan Details": {
+    "A) Cost of the Course": {
+      "Tution Fees": "2368889.00",
+      "Living Expenses/ Hostel and Food": "2500000.00",
+      "Travelling Expenses": "0.00",
+      "Others": "400000.00",
+      "Total": "Rs 5551094.00"
+    },
+    "B) Funds Available": {
+      "Own Source": "168889",
+      "Scholrship": "0",
+      "Others": "0",
+      "Total": "5551094.0"
+    },
+    "Loan Required (A-B)": "Rs 5100000",
+    "Disbursement Details": null,
+    "Mode": null
+  },
+
+  "Security Details": {
+    "Security Offered": "No",
+    "Type of Property Offered": null,
+    "Other": null,
+    "Current Market Value (Rs)": null,
+    "Property Owned by": null,
+    "Property Address/ Security Details": null
+  },
+
+  "Applicant Reference": {
+    "Name": "Sowmiya D",
+    "Address": "kk nagar",
+    "Landmark": "tiruttanai",
+    "Personal Email ID": "sowmiya@gmail.com",
+    "Landphone No": null,
+    "Mobile No": "8072028701",
+    "Occupation": null
+  },
+
+  "Co-Applicant 1": {
+    "Co-Applicant Photo": "Present",
+    "Relationship with Applicant": "Father",
+    "Relationship Proof": null,
+    "Name": {
+      "First Name": "WGS",
+      "Middle Name": null,
+      "Last Name": "DEVASIRVADHAM"
+    },
+    "Father/ Spouse Name": {
+      "First Name": "WILSONGNANASINGAMANI",
+      "Middle Name": null,
+      "Last Name": "S"
+    },
+    "Mother's Name": {
+      "First Name": "VASANTHAMMAL",
+      "Middle Name": null,
+      "Last Name": "V"
+    },
+    "Date of Birth": "15-Aug-1973",
+    "Gender": "Male",
+    "Marital status": "Married",
+    "PAN No": "BQCPD4202N",
+    "Aadhar No": {
+      "Yes": true,
+      "Number": "2709"
+    },
+    "CKYC": null,
+    "Passport/ DL. No": null,
+    "Date of Expiry": null,
+    "Voter ID": null,
+    "Mobile No": "9843289499",
+    "Email ID": "DEVASIRVADHAM73@GMAIL.COM",
+    "Qualifications": null,
+    "No. of Dependents": null,
+    "Current Address": {
+      "Address": "No.33 ,kk nagar ,chittoor road tiruttani",
+      "Landmark": "tiruvallur",
+      "City": "TIRUVALLUR",
+      "State": "Tamil Nadu",
+      "District": null,
+      "Pincode": "631209",
+      "Country": "INDIA"
+    },
+    "Years in the Current Address": "2",
+    "Current Address Type": null,
+    "Permanent Address": {
+      "Same as Above": true,
+      "Address": "No.33 ,kk nagar ,chittoor road tiruttani",
+      "Landmark": "tiruvallur",
+      "City": "TIRUVALLUR",
+      "State": "Tamil Nadu",
+      "District": null,
+      "Pincode": "631209",
+      "Country": "INDIA"
+    },
+    "Landline No": null,
+    "Bank Details (Transactional A/C)": {
+      "Account Holder Name": "Wgs Devasirvadham",
+      "Name of Bank": "YES BANK",
+      "Branch": null,
+      "Account Number": "062998700002246",
+      "IFSC Code": null,
+      "MICR": null,
+      "Operating Since": null
+    },
+    "Employment or Business Details": {
+      "Occupation": "Salaried",
+      "Total Years in Service/Business": "25",
+      "No. of Years in Current Employment/Business": "2",
+      "Age of Retirement": null,
+      "Designation/ Profession": "TEAM LEADER",
+      "Name of the Current Employer or Business/Firm": "Walsons services pvt ltd",
+      "Nature of Business": null,
+      "Industry": null,
+      "Address of the Employer or Business/Firm": {
+        "Address": "no.3 and 4 ,3rd floor SCN ja,aldeen ,Chambers Mentieth Road",
+        "Landmark": "Egmore",
+        "City": "CHENNAI",
+        "State": "Tamil Nadu",
+        "District": null,
+        "Pincode": "600008",
+        "Country": "INDIA"
+      },
+      "Landphone of Employer/ Business": null,
+      "Website": null,
+      "Emp ID": null,
+      "Official Email ID": null,
+      "Gross Monthly Salary/Income Rs": null,
+      "Net Monthly Salary/Income Rs": null,
+      "Other Monthly Income Rs": null,
+      "Total Income (15+16) Rs": null
+    },
+    "Financial Information": {
+      "A) Assets": {
+        "Bank Balances (All A/c's)": { "Applicant": null, "Co-Applicant": null },
+        "Fixed Deposits": { "Applicant": null, "Co-Applicant": null },
+        "Investments: (Stock/bonds/Mutual Funds)": { "Applicant": null, "Co-Applicant": null },
+        "Immovable Property": { "Applicant": null, "Co-Applicant": null },
+        "Other": { "Applicant": null, "Co-Applicant": null }
+      },
+      "B) Liabilities": {
+        "Home Loan": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": "0.0", "Balance Tenure": null },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        },
+        "Personal Loan": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": "0.0", "Balance Tenure": null },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        },
+        "Car/ Two Wheeler Loan": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": "0.0", "Balance Tenure": null },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        },
+        "Credit Card": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": "0.0", "Balance Tenure": null },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        },
+        "Other Loan": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": "0.0" },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        }
+      }
+    },
+    "Relationship": {
+      "Relationship of Applicant/ Co-Applicant with Avanse": "No",
+      "Name & Relationship with Avanse Official": null,
+      "PEP/Relative or Close Associate of PEP": "No"
+    }
+  },
+
+  "Co-Applicant 2": {
+    "Relationship with Applicant": "Mother",
+    "Relationship Proof": null,
+    "Name": {
+      "First Name": "V",
+      "Middle Name": "S",
+      "Last Name": "PRIYADARSINI"
+    },
+    "Father/ Spouse Name": {
+      "First Name": "SANKARAIAH",
+      "Middle Name": null,
+      "Last Name": "N"
+    },
+    "Mother's Name": {
+      "First Name": "SUSILA",
+      "Middle Name": null,
+      "Last Name": "S"
+    },
+    "Date of Birth": "10-Jun-1975",
+    "Gender": "Female",
+    "Marital status": "Married",
+    "PAN No": "CNDPP3584N",
+    "Aadhar No": {
+      "Yes": true,
+      "Number": "1276"
+    },
+    "CKYC": null,
+    "Passport/ DL. No": null,
+    "Date of Expiry": null,
+    "Voter ID": null,
+    "Mobile No": "9843768184",
+    "Email ID": "PRIYADARSINIVS512@GMAIL.COM",
+    "Qualifications": null,
+    "No. of Dependents": "0",
+    "Current Address": {
+      "Address": "No.33 ,kk nagar ,chittoor road tiruttani",
+      "Landmark": "tiruvallur",
+      "City": "TIRUVALLUR",
+      "State": "Tamil Nadu",
+      "District": null,
+      "Pincode": "631209",
+      "Country": "INDIA"
+    },
+    "Years in the Current Address": "2",
+    "Current Address Type": null,
+    "Permanent Address": {
+      "Same as Above": true,
+      "Address": "No.33 ,kk nagar ,chittoor road tiruttani",
+      "Landmark": "tiruvallur",
+      "City": "TIRUVALLUR",
+      "State": "Tamil Nadu",
+      "District": null,
+      "Pincode": "631209",
+      "Country": "INDIA"
+    },
+    "Landline No": null,
+    "Bank Details (Transactional A/C)": {
+      "Account Holder Name": null,
+      "Name of Bank": null,
+      "Branch": null,
+      "Account Number": null,
+      "IFSC Code": null,
+      "MICR": null,
+      "Operating Since": null
+    },
+    "Employment or Business Details": {
+      "Occupation": "OTHER",
+      "Total Years in Service/Business": "5",
+      "No. of Years in Current Employment/Business": "5",
+      "Age of Retirement": null,
+      "Designation/ Profession": "OTHERS",
+      "Name of the Current Employer or Business/Firm": null,
+      "Nature of Business": null,
+      "Industry": null,
+      "Address of the Employer or Business/Firm": {
+        "Address": null,
+        "Landmark": null,
+        "City": null,
+        "State": null,
+        "District": null,
+        "Pincode": null,
+        "Country": null
+      },
+      "Landphone of Employer/ Business": null,
+      "Website": null,
+      "Emp ID": null,
+      "Official Email ID": null,
+      "Gross Monthly Salary/Income Rs": null,
+      "Net Monthly Salary/Income Rs": null,
+      "Other Monthly Income Rs": null,
+      "Total Income (15+16) Rs": null
+    },
+    "Financial Information": {
+      "A) Assets": {
+        "Bank Balances (All A/c's)": { "Applicant": null, "Co-Applicant": null },
+        "Fixed Deposits": { "Applicant": null, "Co-Applicant": null },
+        "Investments: (Stock/bonds/Mutual Funds)": { "Applicant": null, "Co-Applicant": null },
+        "Immovable Property": { "Applicant": null, "Co-Applicant": null },
+        "Other": { "Applicant": null, "Co-Applicant": null }
+      },
+      "B) Liabilities": {
+        "Home Loan": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": "0.0", "Balance Tenure": null },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        },
+        "Personal Loan": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": "0.0", "Balance Tenure": null },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        },
+        "Car/ Two Wheeler Loan": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": "0.0", "Balance Tenure": null },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        },
+        "Credit Card": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": "0.0", "Balance Tenure": null },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        },
+        "Other Loan": {
+          "Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": "0.0" },
+          "Co-Applicant": { "Outstanding Amount": null, "Monthly Installment": null, "Balance Tenure": null }
+        }
+      }
+    },
+    "Relationship": {
+      "Relationship of Applicant/ Co-Applicant with Avanse": "No",
+      "Name & Relationship with Avanse Official": null,
+      "PEP/Relative or Close Associate of PEP": "No"
+    }
+  },
+
+  "Coapplicant Reference": {
+    "Name": "Bommaiyan N",
+    "Address": "sandhoshapuram",
+    "Landmark": "chennai",
+    "Personal Email ID": null,
+    "Landphone No": null,
+    "Mobile No": "8610211760",
+    "Occupation": null
+  },
+
+  "Checklist of Supporting Documents": {
+    "Applicant": {
+      "2 Color Photos": false,
+      "Photo Id": false,
+      "PAN": false,
+      "Aadhar": false,
+      "Passport": false,
+      "Voter Id": false,
+      "Academic Documents": false,
+      "Proof of Admission": false,
+      "Fees Structure": false
+    },
+    "Co-Applicant": {
+      "2 Color Photos": false,
+      "Photo Id": false,
+      "PAN": false,
+      "Aadhar": false,
+      "Passport": false,
+      "8 Months Bank Statement": false,
+      "Income Proof": false,
+      "Collateral Documents": false,
+      "Relationship Proof": false
+    },
+    "Additional Co-Applicant": {
+      "Selected": false,
+      "2 Color Photos": false,
+      "Photo Id": false,
+      "PAN": false,
+      "Aadhar": false,
+      "Passport": false,
+      "8 Months Bank Statement": false,
+      "Income Proof": false,
+      "Collateral Documents": false,
+      "Relationship Proof": false
+    },
+    "Guarantor": {
+      "Selected": false,
+      "2 Color Photos": false,
+      "Photo Id": false,
+      "PAN": false,
+      "Aadhar": false,
+      "Passport": false,
+      "8 Months Bank Statement": false,
+      "Collateral Documents": false
+    }
+  },
+
+  "Form No. 60": {
+    "Full Name": "Alex Devasirvadham",
+    "Address of the declarant": "No.33 , kk nagar , chittoor road tiruttani",
+    "Particulars of transaction": null,
+    "Amount of the transaction": null,
+    "Are you assessed to tax?": null,
+    "Details of Ward/Circle/Range where the last return of income was filed": null,
+    "Reasons for not having permanent account number": null,
+    "Details of the document being produced in support of address": null,
+    "Declarant Name in Verification": "Alex Devasirvadham",
+    "Date": "16-Jun-2026",
+    "Place": "CHENNAI",
+    "Signature of Declarant": null
+  },
+
+  "Insurance": {
+    "I/We hereby accept to avail Insurance Facilities offered by Avanse Financial Services Ltd": null
+  },
+
+  "Overseas Remittance (In Case of Study Abroad)": {
+    "AD/FX dealer via Avanse tie-up": false,
+    "Other AD of Applicant": false
+  },
+
+  "Important Charges": {
+    "Application Fee": "Up to Rs. 6,000/-",
+    "Loan processing fee (Non-Refundable)": "Up to 2%",
+    "Penal Charges (per month on late payment of EMI)": "2% p.m.",
+    "Charges for other event of default i.e. non-compliance of material terms and conditions / Default Charges": "Rs.5,000/- p.m. until the default is cured * [Cure period shall be as per the loan agreement or lender's notice and shall not exceed 90 days.]",
+    "Foreclosure charges/Prepayment Charges": "Nil; Fixed Rate : 2% Foreclosure charges are applicable",
+    "Conversion charges (For switching from Floating to Fixed at the time of interest reset)": "0.25% of loan outstanding amount"
+  },
+
+  "Acknowledgement": {
+    "Application Number/ SL No.": "CHEEE01156901",
+    "Name of the Applicant": "Alex Devasirvadham",
+    "Code": null,
+    "Location": "CHENNAI",
+    "Date": "16-Jun-2026",
+    "Stamp & Sign": null
+  },
+
+  "Signed, Sealed and Delivered": {
+    "Borrower": {
+      "Signer Name": "Alex",
+      "Signature Type": "eSigned using Leegality.com",
+      "Signed On": "16-Jun-2026 12:09:50 +05:30",
+      "Pages Signed": "1-18"
+    },
+    "Co Borrower 1": {
+      "Signer Name": "Wgs",
+      "Signature Type": "eSigned using Leegality.com",
+      "Signed On": "16-Jun-2026 12:21:01 +05:30",
+      "Pages Signed": "1-18"
+    },
+    "Co Borrower 2": {
+      "Signer Name": "V",
+      "Signature Type": "eSigned using Leegality.com",
+      "Signed On": "16-Jun-2026 12:24:23 +05:30",
+      "Pages Signed": "1-18"
+    },
+    "Leegality Document ID": "01KV7GTBSEEAKZP5Z7C3A3KENF"
+  }
+}
