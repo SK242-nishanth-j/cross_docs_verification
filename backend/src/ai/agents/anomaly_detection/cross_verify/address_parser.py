@@ -1,6 +1,6 @@
 """
 File: address_parser.py
-Purpose: Split a postal address into pincode, city, numbers and place words.
+Purpose: Addresses: split into parts (PIN, city, numbers, place words).
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: stdlib only
 """
@@ -10,13 +10,13 @@ from __future__ import annotations
 import re
 from collections.abc import Mapping
 
-from .constants import Json
-from .constants import Span
-from .text import add_reason
-from .text import ascii_digits
-from .text import failure
-from .text import fold
-from .text import has_foreign_letters
+from .common import Json
+from .common import Span
+from .common import add_reason
+from .common import ascii_digits
+from .common import failure
+from .common import fold
+from .common import has_foreign_letters
 
 # An address is split into four parts that are compared one by one:
 #   pincode | city | numbers (house number, "2nd cross" -> "cross:2") | place words

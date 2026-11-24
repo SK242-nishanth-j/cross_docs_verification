@@ -1,6 +1,6 @@
 """
 File: contacts.py
-Purpose: Parse and compare email addresses and phone numbers.
+Purpose: Email addresses and phone numbers.
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: stdlib only
 """
@@ -12,13 +12,13 @@ import re
 
 from rapidfuzz.distance import OSA
 
-from .constants import Json
-from .constants import Span
-from .text import add_reason
-from .text import ascii_digits
-from .text import failure
-from .text import fold
-from .text import make_outcome
+from .common import Json
+from .common import Span
+from .common import add_reason
+from .common import ascii_digits
+from .common import failure
+from .common import fold
+from .common import make_outcome
 
 _EMAIL = re.compile(r"[^@\s,;<>()]+@[A-Za-z0-9][A-Za-z0-9.-]*\.[A-Za-z]{2,}")
 

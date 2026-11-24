@@ -1,6 +1,6 @@
 """
 File: engine.py
-Purpose: Decide colours and run a list of checks into one report.
+Purpose: Verify: parse and compare every candidate, roll the results up.
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: stdlib only
 """
@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import datetime as dt
 import os
-import re
 import uuid
 from collections.abc import Mapping
 from typing import Any
@@ -18,43 +17,33 @@ from src.utils.logging.logger import get_logger
 
 from .address_parser import parse_address
 from .addresses import compare_addresses
-from .amounts import compare_amounts
-from .amounts import parse_amount
+from .checks import build_result
+from .checks import read_checks
+from .checks import roll_up
+from .common import Json
+from .common import add_reason
+from .common import failure
+from .common import is_missing
+from .common import show
+from .config import ModeNotImplementedError
 from .config import load_config
 from .config import prepare_config
-from .constants import Json
 from .contacts import compare_emails
 from .contacts import compare_phones
 from .contacts import parse_email
 from .contacts import parse_phone
 from .dates import compare_dobs
 from .dates import parse_dob
-from .decision import build_result
-from .decision import roll_up
-from .errors import ModeNotImplementedError
-from .identifiers import compare_ids
-from .identifiers import parse_id
 from .names import compare_names
 from .names import parse_name
-from .requests import read_checks
+from .numbers import compare_amounts
+from .numbers import compare_ids
+from .numbers import parse_amount
+from .numbers import parse_id
 from .short_text import compare_texts
 from .short_text import parse_text
-from .text import add_reason
-from .text import failure
-from .text import is_missing
-from .text import show
 
 logger = get_logger(__name__)
-# A bug in one parser or comparer must turn one comparison red, never stop the report.
-_RECOVERABLE = (
-    ArithmeticError,
-    AttributeError,
-    LookupError,
-    RuntimeError,
-    TypeError,
-    ValueError,
-    re.error,
-)
 
 
 COMPARERS = {
@@ -165,9 +154,9 @@ def parse_safely(
     """
     try:
         return parse_value(field_type, kind, value, cfg, side, today)
-    except _RECOVERABLE as exc:
+    except Exception as exc:  # as in the original: one bad value never stops the report
         logger.error(
-            "cross_verify.parse_failed",
+            f"parsing failed: {type(exc).__name__} ({field_type})",
             error_type=type(exc).__name__,
             field_type=field_type,
         )
@@ -192,9 +181,9 @@ def compare_safely(
     """
     try:
         return compare_one(field_type, kind, base, value, cfg, today)
-    except _RECOVERABLE as exc:
+    except Exception as exc:  # as in the original: one bad value never stops the report
         logger.error(
-            "cross_verify.compare_failed",
+            f"comparison failed: {type(exc).__name__} ({field_type})",
             error_type=type(exc).__name__,
             field_type=field_type,
         )

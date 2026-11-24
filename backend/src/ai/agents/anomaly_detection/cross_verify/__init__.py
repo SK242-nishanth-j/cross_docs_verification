@@ -10,15 +10,15 @@ Usage:
                       "candidates": [{"source": "pan", "value": "..."}]}])
 """
 
+from .common import Json
+from .config import ConfigError
+from .config import CrossVerifyError
+from .config import InputError
+from .config import ModeNotImplementedError
 from .config import load_config
 from .config import prepare_config
-from .constants import Json
 from .engine import create_verifier
 from .engine import run_checks
-from .errors import ConfigError
-from .errors import CrossVerifyError
-from .errors import InputError
-from .errors import ModeNotImplementedError
 
 __all__ = [
     "ConfigError",

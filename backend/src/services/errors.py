@@ -23,7 +23,7 @@ class InvalidCaseError(ServiceError):
 
 
 class InvalidInputError(ServiceError):
-    """The OCR input has no readable text."""
+    """An uploaded file cannot be read in the configured mode."""
 
 
 class AgentUnavailableError(ServiceError):

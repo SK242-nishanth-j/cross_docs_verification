@@ -17,6 +17,7 @@ from fastapi import status
 
 from src.ai.prompts.manager import get_prompt_manager
 from src.config.settings import Settings
+from src.config.settings import get_anomaly_config
 from src.config.settings import get_settings
 from src.services.models import HealthStatus
 
@@ -34,21 +35,36 @@ def health() -> HealthStatus:
     return HealthStatus()
 
 
-@router.get("/v1/info", summary="Model, region and provider in use")
+def _model(prompt: Any, settings: Settings) -> str | None:
+    """Effective model of a prompt name from the mode config (None when no LLM)."""
+    if not prompt:
+        return None
+    configured = get_prompt_manager().config(str(prompt)).llm.model_id
+    return settings.bedrock_model_id or configured
+
+
+@router.get("/v1/info", summary="Mode, models, region and provider in use")
 def info(settings: Annotated[Settings, Depends(get_settings)]) -> dict[str, Any]:
-    """Return what the UI shows in its header.
+    """Return what the UI needs: the mode, the accepted files and the models.
 
     Args:
         settings: Application settings.
 
     Returns:
-        Environment, region, the extraction model and the third-party provider.
+        Environment, region, mode, accepted file types, models and the provider.
     """
-    configured = get_prompt_manager().config("document_extraction").llm.model_id
+    config = get_anomaly_config()
+    mode = config["modes"][config["mode"]]
+    documents_prompt = mode.get("verification_prompt") or mode.get("extraction_prompt")
     return {
         "environment": settings.environment,
         "region": settings.aws_region,
-        "model_id": settings.bedrock_model_id or configured,
+        "mode": config["mode"],
+        "mode_label": mode["label"],
+        "accepts": mode["accepts"],
+        "compared_by": "llm" if mode.get("verification_prompt") else "cross_verify",
+        "application_form_model": _model(mode.get("application_form_prompt"), settings),
+        "documents_model": _model(documents_prompt, settings),
         "third_party": "mock",
     }
 

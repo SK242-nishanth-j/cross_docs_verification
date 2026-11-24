@@ -1,8 +1,8 @@
 """
 File: addresses.py
-Purpose: Parse and compare postal addresses (pincode, city, numbers, words).
+Purpose: Addresses: compare the parts and explain the differences.
 Owner: genai-platform@shellkode
-Created: 2026-11-24 | Deps: rapidfuzz
+Created: 2026-11-24 | Deps: stdlib only
 """
 
 from __future__ import annotations
@@ -11,11 +11,11 @@ import datetime as dt
 from collections.abc import Sequence
 from typing import Any
 
-from .constants import Json
-from .text import add_reason
-from .text import make_outcome
-from .text import pair_up
-from .text import word_relation
+from .common import Json
+from .common import add_reason
+from .common import make_outcome
+from .common import pair_up
+from .common import word_relation
 
 
 def _spans(items: Sequence[Json]) -> list[tuple[int, int]]:

@@ -1,10 +1,12 @@
 """
 File: case_store.py
-Purpose: JSON file store, one folder per case: <data_dir>/<case_id>/{lead.json, result.json, runs/}.
+Purpose: Local file store, one folder per case: lead, results, uploads and their extracted JSON.
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: stdlib only
 
-OCR text is stored only after Aadhaar masking; the raw OCR JSON is never stored.
+Layout: <data_dir>/<case_id>/{lead.json, result.json, runs/<run_id>.json,
+<folder>/<file>, <folder>/<file>.extracted.json}. Extracted JSON keeps only the
+last 4 Aadhaar digits; uploaded files are stored as they were sent.
 """
 
 import json
@@ -18,6 +20,22 @@ from typing import Any
 from src.services.models import CASE_ID_PATTERN
 
 _CASE_ID = re.compile(CASE_ID_PATTERN)
+_UNSAFE = re.compile(r"[^A-Za-z0-9 ._()-]+")
+_MAX_NAME = 120
+
+
+def safe_file_name(file_name: str) -> str:
+    """Return a file name that is safe to store (no folders, no odd characters).
+
+    Args:
+        file_name: The name sent by the browser.
+
+    Returns:
+        The base name with unsafe characters replaced by ``_``.
+    """
+    base = re.split(r"[\\/]", file_name)[-1]
+    clean = _UNSAFE.sub("_", base).strip(" .") or "file"
+    return clean[-_MAX_NAME:]
 
 
 class CaseStore:
@@ -109,6 +127,59 @@ class CaseStore:
             record: The run result.
         """
         self._write(self._dir(case_id) / "result.json", record)
+
+    def save_upload(
+        self, case_id: str, folder: str, file_name: str, content: bytes
+    ) -> str:
+        """Store one uploaded file under the case.
+
+        Args:
+            case_id: The case.
+            folder: Sub-folder, for example ``documents/applicant``.
+            file_name: The uploaded file name (made safe before use).
+            content: The file bytes.
+
+        Returns:
+            The stored path, relative to the data folder.
+        """
+        path = self._file(case_id, folder, safe_file_name(file_name))
+        path.parent.mkdir(parents=True, exist_ok=True)
+        fd, tmp = tempfile.mkstemp(dir=path.parent, prefix=".tmp-")
+        try:
+            with os.fdopen(fd, "wb") as handle:
+                handle.write(content)
+            os.replace(tmp, path)
+        except OSError:
+            Path(tmp).unlink(missing_ok=True)
+            raise
+        return path.relative_to(self._root).as_posix()
+
+    def save_extracted(
+        self, case_id: str, folder: str, file_name: str, record: dict[str, Any]
+    ) -> str:
+        """Store the JSON read from one uploaded file, next to it.
+
+        Args:
+            case_id: The case.
+            folder: Sub-folder, for example ``documents/applicant``.
+            file_name: The uploaded file name.
+            record: The structured JSON of the file.
+
+        Returns:
+            The stored path, relative to the data folder.
+        """
+        name = f"{safe_file_name(file_name)}.extracted.json"
+        path = self._file(case_id, folder, name)
+        self._write(path, record)
+        return path.relative_to(self._root).as_posix()
+
+    def _file(self, case_id: str, folder: str, name: str) -> Path:
+        """Return a path inside the case folder, refusing paths that leave it."""
+        base = self._dir(case_id)
+        path = (base / folder / name).resolve()
+        if base not in path.parents:
+            raise ValueError("invalid storage path")
+        return path
 
     def get_result(self, case_id: str) -> dict[str, Any] | None:
         """Return the latest result of a case.

@@ -1,14 +1,22 @@
 import { useEffect, useMemo, useRef, useState } from "react";
+import { isAccepted, payloadToUploads, readFileText, toUploads } from "../../lib/uploads";
 import { anomalyApi } from "../../services/anomalyApi";
+import type { AutofillResponse, BackendInfo, CasePayload, CoApplicantLead, DocumentUpload, Lead, RunResult } from "../../types/api";
+import { RELATIONSHIPS } from "../../types/api";
 import { DocumentsEditor } from "./components/DocumentsEditor";
 import { LeadForm } from "./components/LeadForm";
 import { ResultView } from "./components/ResultView";
-import { filesToDocuments, readFileText, readOcrFile } from "../../lib/ocrFiles";
-import type { AutofillResponse, CasePayload, CoApplicantLead, DocumentIn, Lead, RunResult } from "../../types/api";
-import { RELATIONSHIPS } from "../../types/api";
 
 const EMPTY_LEAD: Lead = { applicant: { name: "" }, co_applicants: [] };
 const CASE_ID = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/;
+
+/** What to upload in each mode (the backend decides the mode). */
+const UPLOAD_HINT: Record<BackendInfo["mode"], string> = {
+  vision_llm: "PDF or images (PNG, JPG). The vision LLM reads them.",
+  structured: "Structured JSON (key-value pairs): one file per document, or one case file with every person's documents. No LLM is used.",
+  ocr_llm: "Raw OCR JSON ({pages: [...]}) or plain text. The LLM reads and compares.",
+  ocr_hybrid: "Raw OCR JSON ({pages: [...]}) or plain text. The LLM reads, cross_verify compares.",
+};
 
 /** Empty inputs are sent as null so the backend sees "not provided". */
 function cleanLead(lead: Lead): Lead {
@@ -35,7 +43,24 @@ function leadFromAutofill(res: AutofillResponse, applicantName: string, coNames:
   };
 }
 
+function autofillMessage(res: AutofillResponse, fileName: string): string {
+  const masked = res.dropped.filter((d) => d.reason === "MASKED");
+  const missing = res.dropped.filter((d) => d.reason !== "MASKED");
+  const list = (items: typeof res.dropped) => items.map((d) => d.field).join(", ");
+  return [
+    `Auto-filled ${Object.keys(res.grounding).length} field(s) from ${fileName} in ${(res.elapsed_ms / 1000).toFixed(1)} s (${res.mode}).`,
+    masked.length ? `${masked.length} value(s) masked by a PII guardrail (enter them by hand): ${list(masked)}.` : "",
+    missing.length ? `${missing.length} value(s) dropped (not found in the file): ${list(missing)}.` : "",
+    ...res.warnings,
+    res.stored.length ? `Stored: ${res.stored.join(", ")}.` : "",
+    "Review every field before creating the lead.",
+  ]
+    .filter(Boolean)
+    .join(" ");
+}
+
 export function AnomalyDetectionPage() {
+  const [info, setInfo] = useState<BackendInfo | null>(null);
   const [health, setHealth] = useState("checking backend…");
   const [samples, setSamples] = useState<string[]>([]);
   const [caseId, setCaseId] = useState("");
@@ -44,7 +69,7 @@ export function AnomalyDetectionPage() {
   const [lead, setLead] = useState<Lead>(EMPTY_LEAD);
   const [grounding, setGrounding] = useState<Record<string, string>>({});
   const [autofillInfo, setAutofillInfo] = useState<string | null>(null);
-  const [documents, setDocuments] = useState<DocumentIn[]>([]);
+  const [documents, setDocuments] = useState<DocumentUpload[]>([]);
   const [overridesText, setOverridesText] = useState("{}");
   const [leadSavedFor, setLeadSavedFor] = useState<string | null>(null);
   const [busy, setBusy] = useState<"" | "autofill" | "lead" | "trigger" | "load">("");
@@ -53,12 +78,19 @@ export function AnomalyDetectionPage() {
   const [run, setRun] = useState<RunResult | null>(null);
   const resultRef = useRef<HTMLDivElement>(null);
 
+  const isOcr = info?.mode === "ocr_llm" || info?.mode === "ocr_hybrid";
+  const accepts = info?.accepts ?? [];
+
   useEffect(() => {
     anomalyApi
       .info()
-      .then((h) => setHealth(`backend ok · ${h.environment} · ${h.model_id} · ${h.region} · third-party: ${h.third_party}`))
+      .then((h) => {
+        setInfo(h);
+        const models = [h.application_form_model, h.documents_model].filter(Boolean).join(" / ") || "no LLM";
+        setHealth(`backend ok · ${h.environment} · ${h.mode} · ${models} · ${h.region} · third-party: ${h.third_party}`);
+        if (h.mode === "ocr_llm" || h.mode === "ocr_hybrid") anomalyApi.samples().then(setSamples).catch(() => setSamples([]));
+      })
       .catch(() => setHealth("backend not reachable"));
-    anomalyApi.samples().then(setSamples).catch(() => setSamples([]));
   }, []);
 
   useEffect(() => {
@@ -80,6 +112,7 @@ export function AnomalyDetectionPage() {
   const caseIdValid = CASE_ID.test(caseId.trim());
   const leadReady = leadSavedFor !== null && leadSavedFor === caseId.trim();
   const fail = (prefix: string) => (e: unknown) => setError(`${prefix}: ${(e as Error).message}`);
+  const refused = (files: File[]) => files.filter((f) => !isAccepted(f, accepts)).map((f) => f.name);
 
   const onLoadSample = async (name: string) => {
     if (!name) return;
@@ -92,12 +125,8 @@ export function AnomalyDetectionPage() {
       setCoNames(p.lead.co_applicants.map((c) => c.name));
       setLead(p.lead);
       setGrounding({});
-      setAutofillInfo(
-        name.startsWith("local_")
-          ? "Sample loaded (local case data, not auto-filled)."
-          : "Sample loaded (synthetic data, not auto-filled).",
-      );
-      setDocuments(p.documents);
+      setAutofillInfo(name.startsWith("local_") ? "Sample loaded (local case data, not auto-filled)." : "Sample loaded (synthetic data, not auto-filled).");
+      setDocuments(payloadToUploads(p));
       setOverridesText(JSON.stringify(p.mock_overrides ?? {}, null, 2));
       setLeadSavedFor(null);
       setRun(null);
@@ -111,30 +140,18 @@ export function AnomalyDetectionPage() {
   const onApplicationForm = async (file: File | undefined) => {
     if (!file) return;
     setError(null);
+    if (refused([file]).length) {
+      setError(`This mode accepts ${accepts.join(", ")} files only.`);
+      return;
+    }
     setElapsed(0);
     setBusy("autofill");
     try {
-      const input = await readOcrFile(file);
-      const res = await anomalyApi.autofill(input, applicantName.trim(), coNames.map((n) => n.trim()));
+      const res = await anomalyApi.autofill(file, caseId.trim(), applicantName.trim(), coNames.map((n) => n.trim()));
       setLead(leadFromAutofill(res, applicantName.trim(), coNames));
       setGrounding(res.grounding);
-      if (res.lead.application_no && !caseId.trim()) setCaseId(res.lead.application_no);
-      setAutofillInfo(
-        `Auto-filled ${Object.keys(res.grounding).length} field(s) from ${res.ocr.pages} page(s) of ${file.name} ` +
-          `in ${(res.elapsed_ms / 1000).toFixed(1)} s.` +
-          (() => {
-            const masked = res.dropped.filter((d) => d.reason === "MASKED");
-            const missing = res.dropped.filter((d) => d.reason !== "MASKED");
-            const list = (items: typeof res.dropped) => items.map((d) => d.field).join(", ");
-            return (
-              (masked.length
-                ? ` ${masked.length} value(s) masked by the Bedrock PII guardrail (enter them by hand): ${list(masked)}.`
-                : "") +
-              (missing.length ? ` ${missing.length} value(s) dropped (not found in the OCR): ${list(missing)}.` : "")
-            );
-          })() +
-          " Review every field before creating the lead.",
-      );
+      setCaseId(res.case_id);
+      setAutofillInfo(autofillMessage(res, file.name));
       setLeadSavedFor(null);
     } catch (e) {
       fail("Auto-fill failed")(e);
@@ -157,15 +174,13 @@ export function AnomalyDetectionPage() {
     }
   };
 
-  const onDocumentFiles = async (files: FileList | null) => {
+  const onDocumentFiles = (files: FileList | null) => {
     if (!files || files.length === 0) return;
-    setError(null);
-    try {
-      const added = await filesToDocuments(Array.from(files), lead.co_applicants);
-      setDocuments((prev) => [...prev, ...added]);
-    } catch (e) {
-      fail("Upload failed")(e);
-    }
+    const list = Array.from(files);
+    const bad = refused(list);
+    setError(bad.length ? `Not accepted in this mode (${accepts.join(", ")}): ${bad.join(", ")}` : null);
+    const added = toUploads(list.filter((f) => isAccepted(f, accepts)), lead.co_applicants);
+    setDocuments((prev) => [...prev.filter((d) => !added.some((a) => a.file.name === d.file.name)), ...added]);
   };
 
   const onPayloadFile = async (file: File | undefined) => {
@@ -174,7 +189,7 @@ export function AnomalyDetectionPage() {
     try {
       const p = JSON.parse(await readFileText(file)) as Partial<CasePayload>;
       if (!Array.isArray(p.documents)) throw new Error('the JSON needs a "documents" list');
-      setDocuments(p.documents);
+      setDocuments(payloadToUploads({ documents: p.documents }));
       if (p.mock_overrides) setOverridesText(JSON.stringify(p.mock_overrides, null, 2));
     } catch (e) {
       fail("Payload upload failed")(e);
@@ -217,7 +232,7 @@ export function AnomalyDetectionPage() {
       <header>
         <div>
           <h1>Underwriting Copilot · Anomaly Detection</h1>
-          <div className="muted">Orchestrator Agent → Anomaly Detection Agent (KYC &amp; identity) · dev</div>
+          <div className="muted">Orchestrator Agent → Anomaly Detection Agent (KYC &amp; identity) · {info?.mode_label ?? "…"}</div>
         </div>
         <div className="health">{health}</div>
       </header>
@@ -225,18 +240,20 @@ export function AnomalyDetectionPage() {
       <section className="card">
         <div className="row-between">
           <h2>1 · Create lead (base truth)</h2>
-          <select value="" onChange={(e) => onLoadSample(e.target.value)} disabled={busy !== ""}>
-            <option value="">Load sample…</option>
-            {samples.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
+          {isOcr && samples.length > 0 && (
+            <select value="" onChange={(e) => onLoadSample(e.target.value)} disabled={busy !== ""}>
+              <option value="">Load sample…</option>
+              {samples.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          )}
         </div>
         <div className="grid">
           <label>
-            <span>Case ID *</span>
+            <span>Case ID (empty: taken from the form)</span>
             <input value={caseId} placeholder="e.g. CASE-0001" className={caseId && !caseIdValid ? "bad" : ""}
               onChange={(e) => setCaseId(e.target.value)} />
           </label>
@@ -264,11 +281,11 @@ export function AnomalyDetectionPage() {
 
         <div className="upload-row">
           <label className="upload">
-            <input type="file" accept=".json,.txt" disabled={busy !== ""}
+            <input type="file" accept={accepts.join(",")} disabled={busy !== "" || !info}
               onChange={(e) => { onApplicationForm(e.target.files?.[0]); e.target.value = ""; }} />
-            <span className="button-like">{busy === "autofill" ? `Reading application form… ${elapsed}s` : "Upload application form OCR → auto-fill"}</span>
+            <span className="button-like">{busy === "autofill" ? `Reading application form… ${elapsed}s` : "Upload application form → auto-fill"}</span>
           </label>
-          <span className="muted">OCR JSON ({"{pages: [...]}"}) or plain text. The LLM fills the fields below.</span>
+          <span className="muted">{info ? UPLOAD_HINT[info.mode] : ""}</span>
         </div>
         {autofillInfo && <div className="info-line">{autofillInfo}</div>}
 
@@ -283,23 +300,25 @@ export function AnomalyDetectionPage() {
       </section>
 
       <section className={`card ${leadReady ? "" : "dimmed"}`}>
-        <h2>2 · Documents (OCR JSON of every file, one shot)</h2>
+        <h2>2 · Documents (every file of every person, one shot)</h2>
         <div className="upload-row">
           <label className="upload">
-            <input type="file" accept=".json,.txt" multiple onChange={(e) => { onDocumentFiles(e.target.files); e.target.value = ""; }} />
-            <span className="button-like secondary">Upload document OCR files (select all)</span>
+            <input type="file" accept={accepts.join(",")} multiple onChange={(e) => { onDocumentFiles(e.target.files); e.target.value = ""; }} />
+            <span className="button-like secondary">Upload documents (select all)</span>
           </label>
-          <label className="upload">
-            <input type="file" accept=".json" onChange={(e) => { onPayloadFile(e.target.files?.[0]); e.target.value = ""; }} />
-            <span className="button-like secondary">…or one payload JSON ({"{documents: [...]}"})</span>
-          </label>
+          {isOcr && (
+            <label className="upload">
+              <input type="file" accept=".json" onChange={(e) => { onPayloadFile(e.target.files?.[0]); e.target.value = ""; }} />
+              <span className="button-like secondary">…or one payload JSON ({"{documents: [...]}"})</span>
+            </label>
+          )}
           {documents.length > 0 && (
             <button type="button" className="link danger" onClick={() => setDocuments([])}>
               Clear all
             </button>
           )}
         </div>
-        <p className="muted">Party and document type are guessed from the file name. Check them before triggering.</p>
+        <p className="muted">{info ? UPLOAD_HINT[info.mode] : ""} Person and document type are guessed from the file name. Check them before triggering.</p>
         <DocumentsEditor documents={documents} partyIds={partyIds} partyLabels={partyLabels} onChange={setDocuments} />
         <details className="overrides">
           <summary>Mock third-party responses (optional overrides)</summary>
@@ -314,8 +333,8 @@ export function AnomalyDetectionPage() {
       <section className="card">
         <h2>3 · Trigger</h2>
         <p className="muted">
-          Backend → Orchestrator Agent → Anomaly Detection Agent: LLM reads each document → cross_verify compares every pair
-          (applicant, father, mother, other co-applicants) → third-party checks.
+          Backend → Orchestrator Agent → Anomaly Detection Agent ({info?.mode_label ?? "…"}): applicant, father, mother, other
+          co-applicants → mocked third-party checks → checklist, truth table and JSON.
         </p>
         <div className="actions">
           <button type="button" className="primary" onClick={onTrigger} disabled={busy !== "" || !leadReady || documents.length === 0}>

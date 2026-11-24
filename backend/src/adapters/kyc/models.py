@@ -82,7 +82,7 @@ class BureauAddressRecord:
 
 @dataclass(frozen=True)
 class BureauReport:
-    """CIBIL / CRIF identity section (KY-01 name and DOB, KY-02 addresses)."""
+    """CIBIL / CRIF identity section (name, DOB and addresses)."""
 
     provider: str
     name: str | None
@@ -93,7 +93,7 @@ class BureauReport:
 
 @dataclass(frozen=True)
 class PanAadhaarLink:
-    """Karza PAN-Aadhaar linkage (KY-03)."""
+    """Karza PAN-Aadhaar linkage."""
 
     provider: str
     linked: bool
@@ -102,7 +102,7 @@ class PanAadhaarLink:
 
 @dataclass(frozen=True)
 class VoterDlVerification:
-    """Karza Voter ID / Driving Licence verification (KY-04)."""
+    """Karza Voter ID / Driving Licence verification."""
 
     provider: str
     doc_type: Literal["VOTER_ID", "DRIVING_LICENCE"]
@@ -113,7 +113,7 @@ class VoterDlVerification:
 
 @dataclass(frozen=True)
 class EmailVerification:
-    """Email ownership (KY-05)."""
+    """Email ownership."""
 
     provider: str
     ownership_verified: bool
@@ -122,7 +122,7 @@ class EmailVerification:
 
 @dataclass(frozen=True)
 class FaceMatch:
-    """Face match system result (KY-06)."""
+    """Face match system result."""
 
     provider: str
     match_pct: float

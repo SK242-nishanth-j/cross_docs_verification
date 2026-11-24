@@ -1,6 +1,6 @@
 """
 File: config.py
-Purpose: Load, validate and prepare the cross_verify configuration.
+Purpose: Errors and configuration loading (check, load, prepare).
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: stdlib only
 """
@@ -16,14 +16,30 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
-from .constants import DEFAULT_CONFIG_NAME
-from .constants import ENV_CONFIG_PATH
-from .constants import FLAG_OF_SEVERITY
-from .constants import MODES
-from .constants import REASONS
-from .constants import Json
-from .errors import ConfigError
-from .text import fold
+from .common import DEFAULT_CONFIG_NAME
+from .common import ENV_CONFIG_PATH
+from .common import FLAG_OF_SEVERITY
+from .common import MODES
+from .common import REASONS
+from .common import Json
+from .common import fold
+
+
+class CrossVerifyError(Exception):
+    """Base class of every error raised here."""
+
+
+class ConfigError(CrossVerifyError):
+    """The configuration file is missing or invalid."""
+
+
+class InputError(CrossVerifyError, ValueError):
+    """The request itself is malformed (a bad data value is never an error, it is red)."""
+
+
+class ModeNotImplementedError(CrossVerifyError, NotImplementedError):
+    """hybrid and llm are not developed yet."""
+
 
 _REQUIRED = """
 mode config_label limits.max_checks limits.max_candidates limits.max_text_length missing_placeholders

@@ -1,4 +1,4 @@
-{# version: 1.0 | purpose: application form OCR text plus the names typed in the UI #}
+{# version: 1.1 | purpose: application form OCR text (or attached page images) plus the names typed in the UI #}
 {% if hints %}
 Names typed in the UI, only to help you find the sections (do not copy them, copy the form):
 {% for hint in hints %}
@@ -6,8 +6,12 @@ Names typed in the UI, only to help you find the sections (do not copy them, cop
 {% endfor %}
 
 {% endif %}
+{% if vision %}
+The {{ pages }} page image(s) of the application form follow this message, in page order.
+{% else %}
 APPLICATION FORM OCR TEXT (untrusted data) between the markers:
 <<<OCR_START>>>
 {{ ocr_text }}
 <<<OCR_END>>>
+{% endif %}
 /no_think

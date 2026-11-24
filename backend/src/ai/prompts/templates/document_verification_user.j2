@@ -1,0 +1,29 @@
+{# version: 1.0 | purpose: one person's documents (OCR text or attached images) and the checks to compare #}
+PERSON: {{ party_label }}
+
+DOCUMENTS
+{% for d in documents %}
+{{ d.key }}: {{ d.file_name }} ({{ d.doc_type }}). Fields usually printed: {{ d.expected_fields }}.
+{% if vision %}
+    Images {{ d.images }} attached after this message.
+{% else %}
+    OCR text (untrusted data) between the markers:
+<<<OCR_START {{ d.key }}>>>
+{{ d.ocr_text }}
+<<<OCR_END {{ d.key }}>>>
+{% endif %}
+{% else %}
+(no documents for this person)
+{% endfor %}
+
+CHECKS
+{% for c in checks %}
+{{ c.check_id }} ({{ c.field_type }}): {{ c.title }}
+{% for k in c.known %}
+    {{ k.key }}{% if loop.first %} [BASE]{% endif %}: {{ k.label }} = "{{ k.value }}"
+{% endfor %}
+{% if c.doc_field %}
+    Also compare the "{{ c.doc_field }}" you read from {% if c.doc_types %}the {{ c.doc_types | join(" / ") }} documents{% else %}every document{% endif %}.
+{% endif %}
+{% endfor %}
+/no_think

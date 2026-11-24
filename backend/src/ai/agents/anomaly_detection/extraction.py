@@ -1,6 +1,6 @@
 """
 File: extraction.py
-Purpose: Per-document LLM extraction: OCR -> masked text -> one Strands call -> grounded identity fields.
+Purpose: Hybrid mode: one LLM read per document (OCR text -> grounded fields); shared field cleaning.
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: strands-agents
 
@@ -9,16 +9,17 @@ in that same text (grounding); anything that is not there is dropped, so
 cross_verify never compares invented values.
 """
 
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass
-from dataclasses import field
 from typing import Any
 
 from src.adapters.bedrock.client import MODEL_CALL_ERRORS
 from src.adapters.bedrock.client import BedrockModels
 from src.adapters.bedrock.client import BedrockUnavailableError
 from src.adapters.bedrock.client import extract_structured
+from src.ai.agents.anomaly_detection.schemas import FIELDS
+from src.ai.agents.anomaly_detection.schemas import DocumentExtraction
 from src.ai.agents.anomaly_detection.schemas import DocumentIn
 from src.ai.agents.anomaly_detection.schemas import ExtractedFields
 from src.ai.evaluators.grounding import Source
@@ -26,105 +27,100 @@ from src.ai.evaluators.grounding import clean
 from src.ai.evaluators.grounding import ground
 from src.ai.prompts.manager import PromptManager
 from src.config.settings import Settings
+from src.security.pii import mask_aadhaar_lines
 from src.utils.logging.logger import get_logger
 from src.utils.ocr_text import OcrInputError
+from src.utils.ocr_text import OcrText
 from src.utils.ocr_text import ocr_to_text
 
 logger = get_logger(__name__)
-
-PROMPT_NAME = "document_extraction"
-FIELDS = tuple(ExtractedFields.model_fields)
+_FOUR_DIGITS = re.compile(r"(?<!\d)\d{4}(?!\d)")
 
 
-@dataclass
-class DocumentExtraction:
-    """What was read from one document."""
+def clean_fields(doc_type: str, raw: dict[str, Any]) -> dict[str, str]:
+    """Keep the known, non-empty fields; an Aadhaar number keeps its last 4 digits.
 
-    document_index: int
-    party_id: str
-    doc_type: str
-    file_name: str
-    status: str = "ok"  # ok | failed
-    fields: dict[str, str] = field(default_factory=dict)
-    grounding: dict[str, str] = field(default_factory=dict)
-    dropped: list[dict[str, str]] = field(default_factory=list)
-    error: str | None = None
-    ocr_stats: dict[str, Any] = field(default_factory=dict)
-    masked_text: str = ""
-    elapsed_ms: int = 0
+    Args:
+        doc_type: The document type.
+        raw: Field values (from the LLM or a structured JSON).
 
-    def get(self, name: str) -> str | None:
-        """Return one extracted field.
+    Returns:
+        Cleaned field values.
+    """
+    out: dict[str, str] = {}
+    for name in FIELDS:
+        value = clean(raw.get(name))
+        if value is None:
+            continue
+        if name == "id_number" and doc_type == "AADHAAR":
+            masked = mask_aadhaar_lines([value], aadhaar_card=True)[0]
+            # Keep "XXXX XXXX 1234" only, without notes such as "(first 8 digits hidden)".
+            groups = _FOUR_DIGITS.findall(masked)
+            value = f"XXXX XXXX {groups[-1]}" if groups else masked
+        out[name] = value
+    return out
 
-        Args:
-            name: Field name, for example ``dob``.
 
-        Returns:
-            The value, or None when it was not read.
-        """
-        return self.fields.get(name)
+def document_text(doc: DocumentIn, max_chars: int) -> OcrText:
+    """Turn an uploaded OCR file into one Aadhaar-masked text.
 
-    def as_report(self) -> dict[str, Any]:
-        """Return the extraction for the report (no OCR text).
+    Args:
+        doc: The document (OCR JSON or plain text).
+        max_chars: Longest text kept.
 
-        Returns:
-            Fields, grounding, dropped values, status and timing.
-        """
-        return {
-            "document_index": self.document_index,
-            "party_id": self.party_id,
-            "doc_type": self.doc_type,
-            "file_name": self.file_name,
-            "status": self.status,
-            "fields": self.fields,
-            "grounding": self.grounding,
-            "dropped": self.dropped,
-            "error": self.error,
-            "ocr": self.ocr_stats,
-            "elapsed_ms": self.elapsed_ms,
-        }
+    Returns:
+        The masked text and its statistics.
+
+    Raises:
+        OcrInputError: If the file has no readable OCR text.
+    """
+    try:
+        ocr, raw = doc.ocr_input()
+    except ValueError as exc:
+        raise OcrInputError(str(exc)) from exc
+    return ocr_to_text(
+        ocr, raw, aadhaar_card=doc.doc_type == "AADHAAR", max_chars=max_chars
+    )
 
 
 def ground_fields(
-    raw: ExtractedFields, text: str
+    fields: dict[str, str], text: str
 ) -> tuple[dict[str, str], dict[str, str], list[dict[str, str]]]:
     """Keep only the values that are found in the OCR text.
 
     Args:
-        raw: The model's answer.
-        text: The masked OCR text the answer was read from.
+        fields: Cleaned field values from the model.
+        text: The masked OCR text they were read from.
 
     Returns:
         (fields kept, how each was found, values dropped as NOT_IN_SOURCE).
     """
     source = Source.of(text)
-    fields: dict[str, str] = {}
+    kept: dict[str, str] = {}
     grounding: dict[str, str] = {}
     dropped: list[dict[str, str]] = []
-    for name in FIELDS:
-        value = clean(getattr(raw, name))
-        if value is None:
-            continue
+    for name, value in fields.items():
         how = ground(value, source)
         if how:
-            fields[name], grounding[name] = value, how
+            kept[name], grounding[name] = value, how
         else:
             dropped.append({"field": name, "value": value, "reason": "NOT_IN_SOURCE"})
-    return fields, grounding, dropped
+    return kept, grounding, dropped
 
 
 class DocumentExtractor:
-    """Reads identity fields from each document's OCR with a Strands Agent on Bedrock."""
+    """Reads identity fields from each document's OCR text (hybrid mode)."""
 
     def __init__(
         self,
         settings: Settings,
-        rules: dict[str, Any],
+        config: dict[str, Any],
         prompts: PromptManager,
         models: BedrockModels,
     ) -> None:
         self._settings = settings
-        self._hints: dict[str, list[str]] = rules["extraction"]["fields_by_doc_type"]
+        self._hints: dict[str, list[str]] = config["fields_by_doc_type"]
+        self._prompt = str(config["modes"]["ocr_hybrid"]["extraction_prompt"])
         self._prompts = prompts
         self._models = models
 
@@ -135,38 +131,13 @@ class DocumentExtractor:
         Returns:
             The effective Bedrock model ID.
         """
-        return self._models.model_id(self._prompts.config(PROMPT_NAME).llm.model_id)
-
-    def prepare(self, index: int, doc: DocumentIn) -> DocumentExtraction:
-        """Turn the OCR into masked text without calling the LLM.
-
-        Args:
-            index: Position of the document in the payload.
-            doc: The document.
-
-        Returns:
-            The extraction record with ``masked_text`` and OCR statistics.
-        """
-        out = DocumentExtraction(index, doc.party_id, doc.doc_type, doc.file_name)
-        try:
-            text = ocr_to_text(
-                doc.ocr,
-                doc.raw_ocr,
-                aadhaar_card=doc.doc_type == "AADHAAR",
-                max_chars=self._settings.document_max_ocr_chars,
-            )
-        except OcrInputError as exc:
-            out.status, out.error = "failed", f"OCR not readable: {exc}"
-            return out
-        out.masked_text = text.text
-        out.ocr_stats = text.stats()
-        return out
+        return self._models.model_id(self._prompts.config(self._prompt).llm.model_id)
 
     def extract_one(self, index: int, doc: DocumentIn) -> DocumentExtraction:
         """Read one document.
 
         Args:
-            index: Position of the document in the payload.
+            index: Position of the document in the case.
             doc: The document.
 
         Returns:
@@ -176,43 +147,46 @@ class DocumentExtractor:
             BedrockUnavailableError: If Bedrock refuses the call for a fatal reason.
         """
         started = time.perf_counter()
-        out = self.prepare(index, doc)
-        if out.status == "ok":
-            cfg = self._prompts.config(PROMPT_NAME)
-            hints = self._hints.get(doc.doc_type, self._hints["OTHER"])
-            user = self._prompts.render_user(
-                PROMPT_NAME,
-                doc_type=doc.doc_type,
-                expected_fields=", ".join(hints)
-                or "any identity field that is printed",
-                ocr_text=out.masked_text,
-            )
-            try:
-                raw = extract_structured(
-                    self._models.get(
-                        cfg.llm.model_id, cfg.llm.temperature, cfg.llm.max_tokens
-                    ),
-                    system_prompt=self._prompts.render_system(PROMPT_NAME),
-                    user_prompt=user,
-                    schema=ExtractedFields,
-                    name="anomaly_detection_extractor",
-                )
-                out.fields, out.grounding, out.dropped = ground_fields(
-                    raw, out.masked_text
-                )
-            except BedrockUnavailableError:
-                raise
-            except MODEL_CALL_ERRORS as exc:
-                logger.warning(
-                    "extraction.document_failed",
-                    document_index=index,
+        out = DocumentExtraction(
+            index, doc.party_id, doc.doc_type, doc.file_name, "llm"
+        )
+        out.stored_as = doc.stored_as
+        try:
+            text = document_text(doc, self._settings.document_max_ocr_chars)
+        except OcrInputError as exc:
+            out.status, out.error = "failed", f"OCR not readable: {exc}"
+            return out
+        out.stats = text.stats()
+        cfg = self._prompts.config(self._prompt)
+        hints = self._hints.get(doc.doc_type, self._hints["OTHER"])
+        try:
+            raw = extract_structured(
+                self._models.get(
+                    cfg.llm.model_id, cfg.llm.temperature, cfg.llm.max_tokens
+                ),
+                system_prompt=self._prompts.render_system(self._prompt),
+                user_prompt=self._prompts.render_user(
+                    self._prompt,
                     doc_type=doc.doc_type,
-                    error_type=type(exc).__name__,
-                )
-                out.status, out.error = (
-                    "failed",
-                    f"Extraction failed ({type(exc).__name__}).",
-                )
+                    expected_fields=", ".join(hints),
+                    ocr_text=text.text,
+                ),
+                schema=ExtractedFields,
+                name="anomaly_detection_extractor",
+            )
+            fields = clean_fields(doc.doc_type, raw.model_dump())
+            out.fields, out.grounding, out.dropped = ground_fields(fields, text.text)
+        except BedrockUnavailableError:
+            raise
+        except MODEL_CALL_ERRORS as exc:
+            logger.warning(
+                "extraction.document_failed",
+                document_index=index,
+                doc_type=doc.doc_type,
+                error_type=type(exc).__name__,
+            )
+            out.status = "failed"
+            out.error = f"Extraction failed ({type(exc).__name__})."
         out.elapsed_ms = int((time.perf_counter() - started) * 1000)
         return out
 
@@ -223,7 +197,7 @@ class DocumentExtractor:
             documents: All documents of the case.
 
         Returns:
-            One extraction per document, in payload order.
+            One extraction per document, in upload order.
         """
         workers = max(1, min(self._settings.extraction_workers, len(documents)))
         with ThreadPoolExecutor(

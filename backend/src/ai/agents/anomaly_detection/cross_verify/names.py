@@ -1,23 +1,23 @@
 """
 File: names.py
-Purpose: Parse and compare person names.
+Purpose: Names: parse, match word by word (initials, order, spelling), explain.
 Owner: genai-platform@shellkode
-Created: 2026-11-24 | Deps: stdlib only
+Created: 2026-11-24 | Deps: rapidfuzz
 """
 
 from __future__ import annotations
 
 import datetime as dt
 
-from .constants import Json
-from .constants import Span
-from .text import _WORD
-from .text import add_reason
-from .text import failure
-from .text import fold
-from .text import has_foreign_letters
-from .text import make_outcome
-from .text import pair_up
+from .common import _WORD
+from .common import Json
+from .common import Span
+from .common import add_reason
+from .common import failure
+from .common import fold
+from .common import has_foreign_letters
+from .common import make_outcome
+from .common import pair_up
 
 _VOWELS = set("aeiou")
 

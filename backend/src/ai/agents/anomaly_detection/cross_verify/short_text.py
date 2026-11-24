@@ -1,8 +1,8 @@
 """
 File: short_text.py
-Purpose: Parse and compare short text (gender, relationship, nationality, names of places and bodies).
+Purpose: Short text: gender, relationship, nationality, names of places and bodies.
 Owner: genai-platform@shellkode
-Created: 2026-11-24 | Deps: rapidfuzz
+Created: 2026-11-24 | Deps: stdlib only
 """
 
 from __future__ import annotations
@@ -12,15 +12,15 @@ import datetime as dt
 from .addresses import _compare_lists
 from .addresses import _highlight_list
 from .addresses import _spans
-from .constants import Json
-from .constants import Span
-from .text import _WORD
-from .text import add_reason
-from .text import failure
-from .text import fold
-from .text import has_foreign_letters
-from .text import make_outcome
-from .text import word_relation
+from .common import _WORD
+from .common import Json
+from .common import Span
+from .common import add_reason
+from .common import failure
+from .common import fold
+from .common import has_foreign_letters
+from .common import make_outcome
+from .common import word_relation
 
 # Two ways of comparing. With a kind that has a word list in the settings ("gender"), both sides are turned
 # into one term and compared. Without one, the words are paired, with a little room for spelling.

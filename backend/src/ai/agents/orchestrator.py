@@ -4,9 +4,10 @@ Purpose: Orchestrator Agent (Strands, Bedrock LLM) that calls the specialist age
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: strands-agents
 
-If the LLM does not call the tool, or tool calling fails for a non-credential
-reason, the orchestrator calls the specialist agent directly, so a trigger always
-produces a result.
+If the LLM does not call the tool, or the orchestrator's LLM call fails (even for
+credentials), the orchestrator calls the specialist agent directly, so the
+structured mode works without Bedrock. A specialist agent that needs Bedrock
+raises BedrockUnavailableError itself.
 """
 
 from typing import Any
@@ -52,7 +53,7 @@ def _template_summary(s: dict[str, Any]) -> str:
         )
     if s["cm_justifications"]:
         who = ", ".join(
-            f"{c['party_id']} {c['rule_id']}" for c in s["cm_justifications"]
+            f"{c['party_id']} ({c['check']})" for c in s["cm_justifications"]
         )
         parts.append(f"CM justification required for: {who}.")
     return " ".join(parts)
@@ -109,15 +110,15 @@ class OrchestratorAgent:
         except BedrockUnavailableError:
             raise
         except MODEL_CALL_ERRORS as exc:
-            fatal = find_fatal(exc)
-            if fatal:
-                raise BedrockUnavailableError(fatal) from exc
+            # The orchestrator's own LLM failed. The specialist agent still runs
+            # directly below; it raises by itself if it needs Bedrock too.
             logger.warning(
                 "orchestrator.agent_failed",
                 case_id=case.case_id,
                 error_type=type(exc).__name__,
+                fatal=bool(find_fatal(exc)),
             )
-            trace["error"] = type(exc).__name__
+            trace["error"] = find_fatal(exc) or type(exc).__name__
 
         results: dict[str, Any] = state["results"]
         if AGENT_NAME in results:

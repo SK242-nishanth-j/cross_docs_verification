@@ -26,6 +26,20 @@ export const RELATIONSHIPS = [
 ] as const;
 export type Relationship = (typeof RELATIONSHIPS)[number];
 
+export type Mode = "vision_llm" | "structured" | "ocr_llm" | "ocr_hybrid";
+
+export interface BackendInfo {
+  environment: string;
+  region: string;
+  mode: Mode;
+  mode_label: string;
+  accepts: string[];
+  compared_by: "llm" | "cross_verify";
+  application_form_model: string | null;
+  documents_model: string | null;
+  third_party: string;
+}
+
 export interface PersonLead {
   name: string;
   father_name?: string | null;
@@ -70,22 +84,24 @@ export interface OcrJson {
   pages: { page_number?: number; text_lines?: string[]; structured_lines?: unknown[]; text?: string }[];
 }
 
-export interface DocumentIn {
+/** One uploaded file with the person and document type chosen in the UI. */
+export interface DocumentUpload {
+  file: File;
   party_id: string;
   doc_type: DocType;
-  file_name: string;
-  ocr?: OcrJson;
-  raw_ocr?: string;
 }
 
+/** A sample case (OCR modes): documents carry their OCR JSON inline. */
 export interface CasePayload {
   case_id: string;
   lead: Lead;
-  documents: DocumentIn[];
+  documents: { party_id: string; doc_type: DocType; file_name: string; ocr?: OcrJson; raw_ocr?: string }[];
   mock_overrides?: Record<string, unknown>;
 }
 
 export interface AutofillResponse {
+  case_id: string;
+  mode: Mode;
   lead: {
     application_no?: string | null;
     lead_id?: string | null;
@@ -94,8 +110,9 @@ export interface AutofillResponse {
   };
   grounding: Record<string, string>;
   dropped: { field: string; value: string; reason: string }[];
-  ocr: { pages: number; lines: number; mean_confidence: number | null; truncated: boolean };
-  model_id: string;
+  stats: { pages?: number; lines?: number; model_id?: string };
+  stored: string[];
+  warnings: string[];
   elapsed_ms: number;
 }
 
@@ -138,7 +155,6 @@ export interface Finding {
   party_id: string;
   category: "cross_verification" | "third_party";
   check: string;
-  rule_id: string | null;
   title: string;
   severity: string | null;
   status: string;
@@ -161,6 +177,13 @@ export interface Finding {
   per_source?: { key: string; label: string; pairs: number; differs_in: number; worst_color: Color }[];
 }
 
+export interface ChecklistItem {
+  item: string;
+  status: "done" | "one_source" | "no_data";
+  color: Color | null;
+  detail: string;
+}
+
 export interface PartyBlock {
   party_id: string;
   role: string;
@@ -169,27 +192,45 @@ export interface PartyBlock {
   label: string;
   status_color: Color;
   documents: { file_name: string; doc_type: string; status: string }[];
+  checklist: ChecklistItem[];
   cross_verification: Finding[];
   third_party: Finding[];
-  not_compared: { check_id: string; title: string; sources: Source[] }[];
+  not_compared: { check_id: string; check: string; title: string; sources: Source[] }[];
+}
+
+export type CellColor = Color | "base" | "masked" | "single";
+
+export interface TruthTableData {
+  party_id: string;
+  label: string;
+  name: string;
+  status_color: Color;
+  columns: { id: string; label: string; color: Color | null; title: string }[];
+  rows: { key: string; label: string; sub: string; is_lead: boolean }[];
+  cells: Record<string, { value: string; color: CellColor; mark: string; note: string }>;
+  third_party: { check_id: string; label: string; color: Color; message: string }[];
 }
 
 export interface ExtractionRow {
   document_index: number;
+  file_name: string;
   party_id: string;
   doc_type: string;
-  file_name: string;
+  read_by: string;
   status: string;
   fields: Record<string, string>;
   grounding: Record<string, string>;
   dropped: { field: string; value: string; reason: string }[];
   error: string | null;
-  ocr: { pages?: number; lines?: number; mean_confidence?: number | null };
+  stats: { pages?: number; lines?: number; mean_confidence?: number | null };
+  stored_as: string | null;
+  extracted_json?: string;
   elapsed_ms: number;
 }
 
 export interface AnomalyReport {
   case_id: string;
+  mode: Mode;
   generated_at: string;
   config: Record<string, unknown>;
   summary: {
@@ -202,13 +243,14 @@ export interface AnomalyReport {
   };
   anomalies: Pick<
     Finding,
-    "check_id" | "party_id" | "category" | "rule_id" | "title" | "severity" | "status" | "color" | "critical" | "message" | "mitigant"
+    "check_id" | "party_id" | "category" | "check" | "title" | "severity" | "status" | "color" | "critical" | "message" | "mitigant"
   >[];
-  sanction_conditions: { party_id: string; rule_id: string; condition: string }[];
-  cm_justifications: { party_id: string; rule_id: string; reason: string }[];
+  sanction_conditions: { party_id: string; check: string; condition: string }[];
+  cm_justifications: { party_id: string; check: string; reason: string }[];
   parties: PartyBlock[];
+  truth_table: TruthTableData[];
   extraction: ExtractionRow[];
-  timing_ms?: { extraction: number; total: number };
+  timing_ms?: { documents: number; total: number };
 }
 
 export interface RunResult {

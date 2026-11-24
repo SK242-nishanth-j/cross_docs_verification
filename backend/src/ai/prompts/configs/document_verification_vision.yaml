@@ -1,0 +1,9 @@
+name: "KYC documents: read and cross-verify (full LLM, images / PDF)"
+description: "Reads every document of one person from its images and compares every check with its base, using the cross_verify rules."
+version: "1.0"
+template: document_verification_system.j2
+user_template: document_verification_user.j2
+model_config:
+  model_id: "qwen.qwen3-vl-235b-a22b"
+  temperature: 0.0
+  max_tokens: 8192

@@ -27,7 +27,7 @@ function detailMessage(body: unknown, status: number): string {
 }
 
 /**
- * Send a JSON request with a timeout and an X-Correlation-ID header.
+ * Send a JSON or multipart request with a timeout and an X-Correlation-ID header.
  * Throws ApiError with a user-safe message on failure.
  */
 export async function requestJson<T>(path: string, init: RequestInit = {}, timeoutMs = appConfig.defaultTimeoutMs): Promise<T> {
@@ -37,7 +37,12 @@ export async function requestJson<T>(path: string, init: RequestInit = {}, timeo
     const res = await fetch(`${appConfig.apiBaseUrl}${path}`, {
       ...init,
       signal: controller.signal,
-      headers: { "Content-Type": "application/json", "X-Correlation-ID": newCorrelationId(), ...(init.headers ?? {}) },
+      // FormData bodies set their own multipart Content-Type (with the boundary).
+      headers: {
+        ...(typeof init.body === "string" ? { "Content-Type": "application/json" } : {}),
+        "X-Correlation-ID": newCorrelationId(),
+        ...(init.headers ?? {}),
+      },
     });
     const text = await res.text();
     let body: unknown = null;

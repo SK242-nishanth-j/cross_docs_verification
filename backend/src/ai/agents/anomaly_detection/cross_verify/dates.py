@@ -1,8 +1,8 @@
 """
 File: dates.py
-Purpose: Parse and compare dates of birth.
+Purpose: Dates of birth: parse every common format and compare the parts.
 Owner: genai-platform@shellkode
-Created: 2026-11-24 | Deps: rapidfuzz
+Created: 2026-11-24 | Deps: stdlib only
 """
 
 from __future__ import annotations
@@ -13,12 +13,12 @@ from typing import Any
 
 from rapidfuzz.distance import OSA
 
-from .constants import Json
-from .constants import Span
-from .text import add_reason
-from .text import ascii_digits
-from .text import failure
-from .text import make_outcome
+from .common import Json
+from .common import Span
+from .common import add_reason
+from .common import ascii_digits
+from .common import failure
+from .common import make_outcome
 
 _MONTHS = {
     "jan": 1,

@@ -135,7 +135,6 @@ function FindingsTable({ findings, kind }: { findings: Finding[]; kind: "pairs" 
         <tr>
           <th style={{ width: 120 }}>Result</th>
           <th style={{ width: 300 }}>Check</th>
-          <th style={{ width: 64 }}>Rule</th>
           <th style={{ width: 74 }}>Severity</th>
           <th>Details</th>
         </tr>
@@ -152,7 +151,6 @@ function FindingsTable({ findings, kind }: { findings: Finding[]; kind: "pairs" 
                 {f.title}
                 {kind === "pairs" && <div className="muted">{(f.sources ?? []).length} sources · {(f.pairs ?? []).length} pairs</div>}
               </td>
-              <td>{f.rule_id ?? "—"}</td>
               <td>{f.severity ?? "—"}</td>
               <td>
                 {f.message}
@@ -162,7 +160,7 @@ function FindingsTable({ findings, kind }: { findings: Finding[]; kind: "pairs" 
             </tr>
             {open === f.check_id && (
               <tr className="detail">
-                <td colSpan={5}>{kind === "pairs" ? <PairDetail finding={f} /> : <ApiDetail finding={f} />}</td>
+                <td colSpan={4}>{kind === "pairs" ? <PairDetail finding={f} /> : <ApiDetail finding={f} />}</td>
               </tr>
             )}
           </Fragment>
@@ -182,12 +180,12 @@ export function PartySection({ party, step }: { party: PartyBlock; step: number 
         <span>{party.name}</span>
         <span className="muted">{party.documents.length} document(s)</span>
       </summary>
-      <h4>Cross-verification (every source vs every source)</h4>
+      <h4>Cross-verification</h4>
       <FindingsTable findings={party.cross_verification} kind="pairs" />
-      {party.not_compared.length > 0 && (
+      {party.not_compared.some((n) => n.sources.length === 1) && (
         <p className="muted">
           Only one source, nothing to compare:{" "}
-          {party.not_compared.map((n) => `${n.title} (${n.sources[0]?.label})`).join(" · ")}
+          {party.not_compared.filter((n) => n.sources.length === 1).map((n) => `${n.title} (${n.sources[0]?.label})`).join(" · ")}
         </p>
       )}
       <h4>Third-party checks (mock APIs)</h4>
@@ -200,9 +198,9 @@ export function Extraction({ report }: { report: AnomalyReport }) {
   return (
     <details className="party">
       <summary>
-        <strong>LLM extraction per document</strong>
+        <strong>JSON read from each document</strong>
         <span className="muted">
-          {report.extraction.length} document(s) · model {String(report.config.llm_model_id)}
+          {report.extraction.length} document(s) · read by {report.extraction[0]?.read_by ?? "—"} · model {String(report.config.llm_model_id ?? "none")}
         </span>
       </summary>
       <table className="findings">
@@ -211,8 +209,8 @@ export function Extraction({ report }: { report: AnomalyReport }) {
             <th>Document</th>
             <th>Party</th>
             <th>Status</th>
-            <th>Fields read (found in the OCR)</th>
-            <th>Dropped (not in the OCR)</th>
+            <th>Fields read</th>
+            <th>Dropped / stored as</th>
           </tr>
         </thead>
         <tbody>
@@ -221,8 +219,8 @@ export function Extraction({ report }: { report: AnomalyReport }) {
               <td>
                 {e.file_name}
                 <div className="muted">
-                  {e.doc_type} · {e.ocr?.pages ?? "?"} page(s)
-                  {e.ocr?.mean_confidence != null ? ` · OCR conf ${e.ocr.mean_confidence}` : ""}
+                  {e.doc_type}{e.stats?.pages ? ` · ${e.stats.pages} page(s)` : ""}
+                  {e.stats?.mean_confidence != null ? ` · OCR conf ${e.stats.mean_confidence}` : ""}
                 </div>
               </td>
               <td>{e.party_id}</td>
@@ -244,6 +242,7 @@ export function Extraction({ report }: { report: AnomalyReport }) {
                     <code>{d.field}</code> “{d.value}”
                   </div>
                 ))}
+                {e.extracted_json && <div className="muted">{e.extracted_json}</div>}
               </td>
             </tr>
           ))}

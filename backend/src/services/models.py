@@ -33,6 +33,32 @@ Relationship = Literal[
     "other",
 ]
 RELATIONSHIPS: tuple[str, ...] = Relationship.__args__  # type: ignore[attr-defined]
+_REL_SYNONYMS = {
+    "dad": "father",
+    "mom": "mother",
+    "mum": "mother",
+    "husband": "spouse",
+    "wife": "spouse",
+    "legal guardian": "guardian",
+    "grand father": "grandfather",
+    "grand mother": "grandmother",
+}
+
+
+def normalize_relationship(value: str | None) -> str | None:
+    """Map the form's relationship text to a lead relationship.
+
+    Args:
+        value: Relationship as written on the form, for example ``Father``.
+
+    Returns:
+        One of ``RELATIONSHIPS`` (``other`` when unknown), or None when empty.
+    """
+    if not value:
+        return None
+    text = " ".join(value.casefold().replace("-", " ").split())
+    text = _REL_SYNONYMS.get(text, text)
+    return text if text in RELATIONSHIPS else "other"
 
 
 class _Base(BaseModel):
@@ -132,26 +158,6 @@ class LeadRecord(BaseModel):
     lead: Lead
 
 
-class AutofillRequest(BaseModel):
-    """Body of ``POST /v1/lead/autofill``: the application form OCR and typed names."""
-
-    model_config = ConfigDict(extra="forbid")
-
-    ocr: dict[str, Any] | None = Field(default=None, description="OCR JSON (pages[])")
-    raw_ocr: str | None = Field(
-        default=None, max_length=300_000, description="or plain text"
-    )
-    applicant_name: str | None = Field(default=None, max_length=200)
-    co_applicant_names: list[str] = Field(default_factory=list, max_length=6)
-
-    @model_validator(mode="after")
-    def _one_input(self) -> "AutofillRequest":
-        """Require exactly one of ``ocr`` and ``raw_ocr``."""
-        if (self.ocr is None) == (self.raw_ocr is None):
-            raise ValueError("send exactly one of 'ocr' (OCR JSON) or 'raw_ocr' (text)")
-        return self
-
-
 class DroppedValue(BaseModel):
     """A value the LLM returned that was not kept.
 
@@ -167,12 +173,14 @@ class DroppedValue(BaseModel):
 class AutofillResponse(BaseModel):
     """Lead fields read from the application form, for review in the UI."""
 
+    case_id: str
+    mode: str
     lead: dict[str, Any]
     grounding: dict[str, str]
     dropped: list[DroppedValue]
-    ocr: dict[str, Any]
-    model_id: str
-    prompt_version: str
+    stats: dict[str, Any]
+    stored: list[str]
+    warnings: list[str]
     elapsed_ms: int
 
 

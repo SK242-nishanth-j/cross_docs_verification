@@ -4,28 +4,40 @@ Purpose: Command-line demo of the cross_verify engine (checks JSON in, report JS
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: stdlib only
 
-Run from the backend folder:
-    python -m scripts.cross_verify_cli --input checks.json [--config path] [--compact]
+Same options as the original cross_verify.py command line. Run from the backend folder:
+    python -m scripts.cross_verify_cli --input checks.json [--config path]
+        [--env-file .env] [--compact]
 """
 
 import argparse
 import json
+import logging
+import os
 import sys
 from collections.abc import Sequence
-from typing import Any
+from pathlib import Path
 
 from src.ai.agents.anomaly_detection.cross_verify import CrossVerifyError
 from src.ai.agents.anomaly_detection.cross_verify import create_verifier
-from src.ai.agents.anomaly_detection.cross_verify.constants import DEFAULT_CONFIG_NAME
-from src.ai.agents.anomaly_detection.cross_verify.constants import ENV_CONFIG_PATH
+from src.ai.agents.anomaly_detection.cross_verify.common import DEFAULT_CONFIG_NAME
+from src.ai.agents.anomaly_detection.cross_verify.common import ENV_CONFIG_PATH
 
 
-def _read_checks(source: str) -> Any:
-    """Read the checks JSON from a file path, or from stdin when ``source`` is ``-``."""
-    if source == "-":
-        return json.load(sys.stdin)
-    with open(source, encoding="utf-8") as handle:
-        return json.load(handle)
+def read_env_file(path: str | os.PathLike[str]) -> dict[str, str]:
+    """Read KEY=value lines. Blank lines and # comments are skipped.
+
+    Args:
+        path: The settings file.
+
+    Returns:
+        The settings found in the file.
+    """
+    values = {}
+    for line in Path(path).read_text(encoding="utf-8").splitlines():
+        key, sep, value = line.strip().partition("=")
+        if sep and key and not key.startswith("#"):
+            values[key.strip()] = value.strip().strip("\"'")
+    return values
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -47,10 +59,22 @@ def main(argv: Sequence[str] | None = None) -> int:
         "--config",
         help=f"config file (default: ${ENV_CONFIG_PATH}, else {DEFAULT_CONFIG_NAME})",
     )
+    parser.add_argument(
+        "--env-file", default=".env", help="KEY=value settings file (default: .env)"
+    )
     parser.add_argument("--compact", action="store_true", help="print one line of JSON")
     args = parser.parse_args(argv)
+    if Path(args.env_file).is_file():
+        for key, value in read_env_file(args.env_file).items():
+            os.environ.setdefault(key, value)
+    logging.basicConfig(
+        level=os.environ.get("CROSS_VERIFY_LOG_LEVEL", "INFO").upper(),
+        stream=sys.stderr,
+    )
     try:
-        report = create_verifier(config_path=args.config)(_read_checks(args.input))
+        source = sys.stdin if args.input == "-" else open(args.input, encoding="utf-8")  # noqa: SIM115
+        with source:
+            report = create_verifier(config_path=args.config)(json.load(source))
     except (CrossVerifyError, OSError, ValueError) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 2

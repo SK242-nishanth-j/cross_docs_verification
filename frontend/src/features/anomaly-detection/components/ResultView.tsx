@@ -1,15 +1,33 @@
 import { useState } from "react";
 import { COLOR_LABEL } from "../../../lib/colors";
 import type { Color, RunResult } from "../../../types/api";
+import { Checklist } from "./Checklist";
 import { Extraction, PartySection } from "./PartyResults";
 import { Chip } from "./ResultAtoms";
 import { TruthTable } from "./TruthTable";
 
+type View = "table" | "checklist" | "details";
+
+function downloadJson(run: RunResult) {
+  const blob = new Blob([JSON.stringify(run, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${run.case_id}_${run.run_id}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 export function ResultView({ run }: { run: RunResult }) {
-  const [view, setView] = useState<"table" | "details">("table");
+  const [view, setView] = useState<View>("table");
   const r = run.results.anomaly_detection;
   const s = r.summary;
   const o = run.orchestrator;
+  const tab = (id: View, label: string) => (
+    <button type="button" className={view === id ? "active" : "secondary"} onClick={() => setView(id)}>
+      {label}
+    </button>
+  );
   return (
     <section className="card result">
       <div className="row-between">
@@ -17,7 +35,8 @@ export function ResultView({ run }: { run: RunResult }) {
           Result · {r.case_id} <Chip color={s.overall_color} label={`Overall: ${COLOR_LABEL[s.overall_color]}`} />
         </h2>
         <span className="muted">
-          {run.run_id} · {r.timing_ms ? `${(r.timing_ms.total / 1000).toFixed(1)} s` : ""}
+          {r.mode} · compared by {String(r.config.compared_by)} · {run.run_id}
+          {r.timing_ms ? ` · ${(r.timing_ms.total / 1000).toFixed(1)} s` : ""}
         </span>
       </div>
 
@@ -55,7 +74,7 @@ export function ResultView({ run }: { run: RunResult }) {
               <ul>
                 {r.sanction_conditions.map((c, i) => (
                   <li key={i}>
-                    {c.party_id}: {c.condition} ({c.rule_id})
+                    {c.party_id}: {c.condition}
                   </li>
                 ))}
               </ul>
@@ -67,7 +86,7 @@ export function ResultView({ run }: { run: RunResult }) {
               <ul>
                 {r.cm_justifications.map((c, i) => (
                   <li key={i}>
-                    {c.party_id} ({c.rule_id}): {c.reason}
+                    {c.party_id}: {c.reason}
                   </li>
                 ))}
               </ul>
@@ -77,17 +96,17 @@ export function ResultView({ run }: { run: RunResult }) {
       )}
 
       <div className="view-tabs">
-        <button type="button" className={view === "table" ? "active" : "secondary"} onClick={() => setView("table")}>
-          Truth table
-        </button>
-        <button type="button" className={view === "details" ? "active" : "secondary"} onClick={() => setView("details")}>
-          Detailed report ({r.anomalies.length} anomalies)
+        {tab("table", "Truth table")}
+        {tab("checklist", "Checklist")}
+        {tab("details", `Detailed report (${r.anomalies.length} anomalies)`)}
+        <button type="button" className="secondary" onClick={() => downloadJson(run)}>
+          Download JSON
         </button>
       </div>
 
-      {view === "table" ? (
-        <TruthTable parties={r.parties} />
-      ) : (
+      {view === "table" && <TruthTable tables={r.truth_table} />}
+      {view === "checklist" && <Checklist parties={r.parties} />}
+      {view === "details" && (
         <>
           <h3>Anomalies ({r.anomalies.length})</h3>
           {r.anomalies.length === 0 ? (
@@ -97,9 +116,8 @@ export function ResultView({ run }: { run: RunResult }) {
               <thead>
                 <tr>
                   <th style={{ width: 120 }}>Result</th>
-                  <th style={{ width: 130 }}>Party</th>
+                  <th style={{ width: 130 }}>Person</th>
                   <th style={{ width: 300 }}>Check</th>
-                  <th style={{ width: 64 }}>Rule</th>
                   <th style={{ width: 74 }}>Severity</th>
                   <th>Details</th>
                 </tr>
@@ -113,7 +131,6 @@ export function ResultView({ run }: { run: RunResult }) {
                     </td>
                     <td>{a.party_id}</td>
                     <td>{a.title}</td>
-                    <td>{a.rule_id ?? "—"}</td>
                     <td>{a.severity ?? "—"}</td>
                     <td>
                       {a.message}
@@ -125,7 +142,7 @@ export function ResultView({ run }: { run: RunResult }) {
             </table>
           )}
 
-          <h3>By party, in check order (click a row for the pair-by-pair comparison)</h3>
+          <h3>By person, in check order (click a row for the comparison)</h3>
           {r.parties.map((p, i) => (
             <PartySection key={p.party_id} party={p} step={i + 1} />
           ))}
@@ -133,7 +150,7 @@ export function ResultView({ run }: { run: RunResult }) {
         </>
       )}
       {Boolean(r.config.third_party_is_mock) && (
-        <p className="muted">Third-party results (bureau, Karza, email ownership, face match) are mocked.</p>
+        <p className="muted">Third-party results (bureau, PAN-Aadhaar, Voter ID / DL, email, face match) are mocked.</p>
       )}
     </section>
   );

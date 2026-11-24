@@ -60,7 +60,7 @@ class PromptManager:
             keep_trailing_newline=False,
         )
 
-    @lru_cache(maxsize=8)  # noqa: B019 - the manager lives for the whole process
+    @lru_cache(maxsize=16)  # noqa: B019 - the manager lives for the whole process
     def config(self, name: str) -> PromptConfig:
         """Load and validate ``configs/<name>.yaml``.
 

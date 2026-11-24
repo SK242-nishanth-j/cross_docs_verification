@@ -27,10 +27,11 @@ logger = get_logger(__name__)
     name="anomaly_detection_agent",
     description=(
         "Runs the Anomaly Detection Agent (KYC & identity cross-verification) for one "
-        "case: reads every document's OCR, compares name, DOB, father's and mother's "
-        "names, address and ID numbers across the lead, all documents and the bureau "
-        "(every pair), then runs the third-party KYC checks KY-02..KY-06. Returns a "
-        "short summary; the full report is kept by the system."
+        "case: reads every document, compares name, DOB, father's and mother's names, "
+        "address and ID numbers across the lead, all documents and the bureau, then "
+        "runs the mocked third-party checks (bureau address, PAN-Aadhaar link, Voter "
+        "ID / DL, email, face match). Returns a short summary; the full report is kept "
+        "by the system."
     ),
     context=True,
 )

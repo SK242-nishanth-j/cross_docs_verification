@@ -1,12 +1,19 @@
 """
 File: autofill_service.py
-Purpose: Application form OCR -> LLM -> grounded lead fields, shown in the UI for review (nothing stored).
+Purpose: Application form -> lead fields for review, in the configured mode; stores the file and its JSON.
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: pydantic, strands-agents
+
+structured  key-value JSON -> lead through structured_mapping.yaml (no LLM)
+vision_llm  page images / PDF -> vision LLM
+ocr_*       OCR JSON or text -> LLM; every value must be found in the OCR text
 """
 
+import datetime as dt
+import json
 import re
 import time
+import uuid
 from typing import Any
 
 from pydantic import BaseModel
@@ -16,37 +23,32 @@ from pydantic import Field
 from src.adapters.bedrock.client import BedrockModels
 from src.adapters.bedrock.client import BedrockUnavailableError
 from src.adapters.bedrock.client import extract_structured
+from src.adapters.storage.case_store import CaseStore
+from src.ai.agents.anomaly_detection.structured_input import application_form_lead
 from src.ai.evaluators.grounding import Source
 from src.ai.evaluators.grounding import clean
 from src.ai.evaluators.grounding import ground
 from src.ai.prompts.manager import PromptManager
 from src.config.settings import Settings
+from src.config.settings import get_structured_mapping
 from src.services.errors import AgentUnavailableError
 from src.services.errors import InvalidInputError
-from src.services.models import RELATIONSHIPS
-from src.services.models import AutofillRequest
+from src.services.models import CASE_ID_PATTERN
 from src.services.models import AutofillResponse
 from src.services.models import DroppedValue
+from src.services.models import normalize_relationship
+from src.utils.images import UnreadableFileError
+from src.utils.images import to_blocks
 from src.utils.logging.logger import get_logger
 from src.utils.ocr_text import OcrInputError
 from src.utils.ocr_text import ocr_to_text
 
 logger = get_logger(__name__)
 
-PROMPT_NAME = "application_form"
 _COPY = "Copy exactly as printed. null if not printed."
 # Anonymisation tags such as {NAME}, {PHONE}, {US_BANK_ACCOUNT_NUMBER}.
 _MASK_TAG = re.compile(r"\{[A-Z][A-Z0-9_]*\}")
-_REL_SYNONYMS = {
-    "dad": "father",
-    "mom": "mother",
-    "mum": "mother",
-    "husband": "spouse",
-    "wife": "spouse",
-    "legal guardian": "guardian",
-    "grand father": "grandfather",
-    "grand mother": "grandmother",
-}
+_CASE_ID = re.compile(CASE_ID_PATTERN)
 
 
 class FormPerson(BaseModel):
@@ -54,7 +56,8 @@ class FormPerson(BaseModel):
 
     model_config = ConfigDict(extra="ignore")
     name: str | None = Field(
-        None, description="Full name: First, Middle, Last joined with spaces. " + _COPY
+        None,
+        description="FULL name: First, Middle, Last joined with spaces. " + _COPY,
     )
     father_name: str | None = Field(
         None, description="'Father/ Spouse Name', boxes joined. " + _COPY
@@ -76,7 +79,7 @@ class FormPerson(BaseModel):
     email: str | None = Field(None, description=_COPY)
     pan: str | None = Field(None, description="PAN No. " + _COPY)
     aadhaar_last4: str | None = Field(
-        None, description="Digits printed after 'Aadhar No' (often the last 4)."
+        None, description="Only the last 4 digits printed after 'Aadhar No'."
     )
     passport_or_dl_number: str | None = Field(
         None, description="'Passport/ DL. No'. " + _COPY
@@ -138,23 +141,14 @@ class ApplicationForm(BaseModel):
     )
 
 
-def _relationship(value: str | None) -> str | None:
-    """Map the form's relationship text to a lead relationship."""
-    if not value:
-        return None
-    text = " ".join(value.casefold().replace("-", " ").split())
-    text = _REL_SYNONYMS.get(text, text)
-    return text if text in RELATIONSHIPS else "other"
-
-
-def _grounded(
+def _kept(
     obj: BaseModel,
     prefix: str,
-    source: Source,
+    source: Source | None,
     meta: dict[str, str],
     dropped: list[DroppedValue],
 ) -> dict[str, Any]:
-    """Keep the scalar fields of ``obj`` that are found in the OCR text."""
+    """Keep the scalar fields of ``obj``: masked tags are dropped, OCR values must be found."""
     out: dict[str, Any] = {}
     for name in type(obj).model_fields:
         value = getattr(obj, name)
@@ -165,10 +159,10 @@ def _grounded(
             continue
         path = f"{prefix}.{name}"
         if _MASK_TAG.search(text):
-            # The Bedrock Guardrails PII filter replaced the value with a tag.
+            # A PII guardrail replaced the value with a tag.
             dropped.append(DroppedValue(field=path, value=text, reason="MASKED"))
             continue
-        how = ground(text, source)
+        how = ground(text, source) if source else "vision"
         if how:
             out[name] = text
             meta[path] = how
@@ -177,102 +171,195 @@ def _grounded(
     return out
 
 
+def _form_lead(
+    form: ApplicationForm, source: Source | None
+) -> tuple[dict[str, Any], dict[str, str], list[DroppedValue]]:
+    """Turn the model's answer into lead fields (grounded when there is OCR text)."""
+    meta: dict[str, str] = {}
+    dropped: list[DroppedValue] = []
+    top = _kept(form, "lead", source, meta, dropped)
+    applicant = _kept(
+        form.applicant or FormApplicant.model_validate({}),
+        "lead.applicant",
+        source,
+        meta,
+        dropped,
+    )
+    co_applicants = []
+    for n, co in enumerate(form.co_applicants, start=1):
+        party_id = f"co_applicant_{n}"
+        values = _kept(co, f"lead.co_applicants[{party_id}]", source, meta, dropped)
+        values["relationship"] = normalize_relationship(
+            values.pop("relationship", None)
+        )
+        co_applicants.append({"party_id": party_id, **values})
+    lead = {
+        "application_no": top.get("application_no"),
+        "lead_id": top.get("lead_id"),
+        "applicant": applicant,
+        "co_applicants": co_applicants,
+    }
+    return lead, meta, dropped
+
+
 class AutofillService:
-    """Reads the lead fields from an application form's OCR."""
+    """Reads the lead fields from an application form in the configured mode."""
 
     def __init__(
-        self, settings: Settings, prompts: PromptManager, models: BedrockModels
+        self,
+        settings: Settings,
+        config: dict[str, Any],
+        prompts: PromptManager,
+        models: BedrockModels,
+        store: CaseStore,
     ) -> None:
         self._settings = settings
+        self._config = config
+        self._mode = str(config["mode"])
         self._prompts = prompts
         self._models = models
+        self._store = store
 
-    def autofill(self, req: AutofillRequest) -> AutofillResponse:
-        """Read every lead field from the application form.
-
-        Args:
-            req: The application form OCR and the names typed in the UI.
-
-        Returns:
-            The grounded lead fields, how each was found and the dropped values.
-
-        Raises:
-            InvalidInputError: If the OCR has no readable text.
-            AgentUnavailableError: If Bedrock refuses the call.
-        """
-        started = time.perf_counter()
+    def _llm_form(
+        self, content: bytes, file_name: str, hints: list[str]
+    ) -> tuple[ApplicationForm, Source | None, dict[str, Any], list[str]]:
+        """Ask the LLM for the form fields (from OCR text or from page images)."""
+        name = str(self._config["modes"][self._mode]["application_form_prompt"])
+        cfg = self._prompts.config(name)
+        vision = self._mode == "vision_llm"
+        warnings: list[str] = []
+        attachments = None
+        variables: dict[str, Any] = {"vision": vision, "hints": hints}
+        source: Source | None = None
+        stats: dict[str, Any] = {}
         try:
-            text = ocr_to_text(
-                req.ocr,
-                req.raw_ocr,
-                aadhaar_card=False,
-                max_chars=self._settings.autofill_max_ocr_chars,
-            )
-        except OcrInputError as exc:
-            raise InvalidInputError(str(exc)) from exc
-        hints = (
-            [f"Applicant (typed by the user): {req.applicant_name}"]
-            if req.applicant_name
-            else []
-        )
-        hints += [
-            f"Co-applicant {n} (typed by the user): {name.strip()}"
-            for n, name in enumerate(req.co_applicant_names, start=1)
-            if name.strip()
-        ]
-        cfg = self._prompts.config(PROMPT_NAME)
-        try:
+            if vision:
+                attachments = to_blocks(content, self._config["vision"])
+                limit = int(self._config["vision"]["max_images_per_call"])
+                if len(attachments) > limit:
+                    warnings.append(
+                        f"Only the first {limit} of {len(attachments)} pages were read."
+                    )
+                    attachments = attachments[:limit]
+                variables["pages"] = stats["pages"] = len(attachments)
+            else:
+                text = self._ocr_text(content, file_name)
+                variables["ocr_text"] = text.text
+                source = Source.of(text.text)
+                stats = text.stats()
             form = extract_structured(
                 self._models.get(
                     cfg.llm.model_id, cfg.llm.temperature, cfg.llm.max_tokens
                 ),
-                system_prompt=self._prompts.render_system(PROMPT_NAME),
-                user_prompt=self._prompts.render_user(
-                    PROMPT_NAME, hints=hints, ocr_text=text.text
-                ),
+                system_prompt=self._prompts.render_system(name, vision=vision),
+                user_prompt=self._prompts.render_user(name, **variables),
                 schema=ApplicationForm,
                 name="application_form_autofill",
+                attachments=attachments,
             )
+        except UnreadableFileError as exc:
+            raise InvalidInputError(f"{file_name}: {exc}") from exc
         except BedrockUnavailableError as exc:
             raise AgentUnavailableError(str(exc)) from exc
+        stats["model_id"] = self._models.model_id(cfg.llm.model_id)
+        stats["prompt_version"] = cfg.version
+        return form, source, stats, warnings
 
-        source = Source.of(text.text)
-        meta: dict[str, str] = {}
-        dropped: list[DroppedValue] = []
-        top = _grounded(form, "lead", source, meta, dropped)
-        applicant = _grounded(
-            form.applicant or FormApplicant.model_validate({}),
-            "lead.applicant",
-            source,
-            meta,
-            dropped,
-        )
-        co_applicants = []
-        for n, co in enumerate(form.co_applicants, start=1):
-            party_id = f"co_applicant_{n}"
-            values = _grounded(
-                co, f"lead.co_applicants[{party_id}]", source, meta, dropped
+    def _ocr_text(self, content: bytes, file_name: str) -> Any:
+        """Read an OCR JSON (pages) or a plain-text OCR file into one masked text."""
+        try:
+            raw = content.decode("utf-8-sig")
+            ocr = None
+            if file_name.lower().endswith(".json"):
+                ocr = json.loads(raw)
+                if not isinstance(ocr, dict):
+                    raise OcrInputError("the OCR JSON must be an object with 'pages'")
+            return ocr_to_text(
+                ocr,
+                None if ocr is not None else raw,
+                aadhaar_card=False,
+                max_chars=self._settings.autofill_max_ocr_chars,
             )
-            values["relationship"] = _relationship(values.pop("relationship", None))
-            co_applicants.append({"party_id": party_id, **values})
+        except (UnicodeDecodeError, ValueError) as exc:
+            raise InvalidInputError(f"{file_name}: {exc}") from exc
+
+    def _case_id(self, given: str | None, lead: dict[str, Any]) -> str:
+        """Use the given case ID, else the form's application number or lead ID."""
+        for candidate in (given, lead.get("application_no"), lead.get("lead_id")):
+            if candidate and _CASE_ID.fullmatch(str(candidate)):
+                return str(candidate)
+        return f"CASE-{dt.datetime.now(dt.UTC):%Y%m%d}-{uuid.uuid4().hex[:6]}"
+
+    def autofill(
+        self,
+        *,
+        file_name: str,
+        content: bytes,
+        case_id: str | None,
+        hints: list[str],
+    ) -> AutofillResponse:
+        """Read every lead field from the application form, then store the file and its JSON.
+
+        Args:
+            file_name: Name of the uploaded application form.
+            content: The file bytes.
+            case_id: The case, or None to take the form's application number.
+            hints: Names typed in the UI (help the LLM find the sections).
+
+        Returns:
+            The lead fields for review, how each was found and the dropped values.
+
+        Raises:
+            InvalidInputError: If the file cannot be read in this mode.
+            AgentUnavailableError: If Bedrock refuses the call.
+        """
+        started = time.perf_counter()
+        warnings: list[str] = []
+        stats: dict[str, Any] = {}
+        if self._mode == "structured":
+            try:
+                data = json.loads(content.decode("utf-8-sig"))
+            except (UnicodeDecodeError, ValueError) as exc:
+                raise InvalidInputError(f"{file_name}: not a valid JSON file") from exc
+            mapping = get_structured_mapping()["application_form"]
+            lead, grounding = application_form_lead(data, mapping)
+            dropped: list[DroppedValue] = []
+        else:
+            form, source, stats, warnings = self._llm_form(content, file_name, hints)
+            lead, grounding, dropped = _form_lead(form, source)
+        case = self._case_id(case_id, lead)
+        stored = self._store_files(case, file_name, content, lead)
         logger.info(
             "autofill.completed",
-            co_applicants=len(co_applicants),
-            grounded=len(meta),
+            mode=self._mode,
+            co_applicants=len(lead["co_applicants"]),
+            grounded=len(grounding),
             dropped=len(dropped),
-            pages=text.pages,
         )
         return AutofillResponse(
-            lead={
-                "application_no": top.get("application_no"),
-                "lead_id": top.get("lead_id"),
-                "applicant": applicant,
-                "co_applicants": co_applicants,
-            },
-            grounding=meta,
+            case_id=case,
+            mode=self._mode,
+            lead=lead,
+            grounding=grounding,
             dropped=dropped,
-            ocr=text.stats(),
-            model_id=self._models.model_id(cfg.llm.model_id),
-            prompt_version=cfg.version,
+            stats=stats,
+            stored=stored,
+            warnings=warnings,
             elapsed_ms=int((time.perf_counter() - started) * 1000),
         )
+
+    def _store_files(
+        self, case_id: str, file_name: str, content: bytes, lead: dict[str, Any]
+    ) -> list[str]:
+        """Keep the uploaded form and the JSON read from it, as configured."""
+        storage = self._config["storage"]
+        folder = str(storage["application_form_dir"])
+        stored = []
+        if storage.get("keep_uploads"):
+            stored.append(self._store.save_upload(case_id, folder, file_name, content))
+        if storage.get("keep_extracted_json"):
+            record = {"file_name": file_name, "mode": self._mode, "lead": lead}
+            stored.append(
+                self._store.save_extracted(case_id, folder, file_name, record)
+            )
+        return stored

@@ -210,63 +210,13 @@
         "title": "ApplicantLead",
         "type": "object"
       },
-      "AutofillRequest": {
-        "additionalProperties": false,
-        "description": "Body of ``POST /v1/lead/autofill``: the application form OCR and typed names.",
-        "properties": {
-          "applicant_name": {
-            "anyOf": [
-              {
-                "maxLength": 200,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Applicant Name"
-          },
-          "co_applicant_names": {
-            "items": {
-              "type": "string"
-            },
-            "maxItems": 6,
-            "title": "Co Applicant Names",
-            "type": "array"
-          },
-          "ocr": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "OCR JSON (pages[])",
-            "title": "Ocr"
-          },
-          "raw_ocr": {
-            "anyOf": [
-              {
-                "maxLength": 300000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "or plain text",
-            "title": "Raw Ocr"
-          }
-        },
-        "title": "AutofillRequest",
-        "type": "object"
-      },
       "AutofillResponse": {
         "description": "Lead fields read from the application form, for review in the UI.",
         "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
           "dropped": {
             "items": {
               "$ref": "#/components/schemas/DroppedValue"
@@ -290,100 +240,105 @@
             "title": "Lead",
             "type": "object"
           },
-          "model_id": {
-            "title": "Model Id",
+          "mode": {
+            "title": "Mode",
             "type": "string"
           },
-          "ocr": {
+          "stats": {
             "additionalProperties": true,
-            "title": "Ocr",
+            "title": "Stats",
             "type": "object"
           },
-          "prompt_version": {
-            "title": "Prompt Version",
-            "type": "string"
+          "stored": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Stored",
+            "type": "array"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "title": "Warnings",
+            "type": "array"
           }
         },
         "required": [
+          "case_id",
+          "mode",
           "lead",
           "grounding",
           "dropped",
-          "ocr",
-          "model_id",
-          "prompt_version",
+          "stats",
+          "stored",
+          "warnings",
           "elapsed_ms"
         ],
         "title": "AutofillResponse",
         "type": "object"
       },
-      "BureauAddress": {
-        "additionalProperties": false,
-        "description": "One address reported by the bureau.",
+      "Body_autofill_v1_lead_autofill_post": {
         "properties": {
-          "address": {
-            "maxLength": 1000,
-            "minLength": 1,
-            "title": "Address",
+          "applicant_name": {
+            "default": "",
+            "maxLength": 200,
+            "title": "Applicant Name",
             "type": "string"
           },
-          "reported_on": {
-            "format": "date",
-            "title": "Reported On",
+          "case_id": {
+            "default": "",
+            "maxLength": 64,
+            "title": "Case Id",
+            "type": "string"
+          },
+          "co_applicant_names": {
+            "default": "[]",
+            "maxLength": 2000,
+            "title": "Co Applicant Names",
+            "type": "string"
+          },
+          "file": {
+            "contentMediaType": "application/octet-stream",
+            "description": "The application form",
+            "title": "File",
             "type": "string"
           }
         },
         "required": [
-          "address",
-          "reported_on"
+          "file"
         ],
-        "title": "BureauAddress",
+        "title": "Body_autofill_v1_lead_autofill_post",
         "type": "object"
       },
-      "BureauOverride": {
-        "additionalProperties": false,
-        "description": "Forced bureau answer for one party.",
+      "Body_trigger_v1_cases__case_id__trigger_post": {
         "properties": {
-          "addresses": {
-            "anyOf": [
-              {
-                "items": {
-                  "$ref": "#/components/schemas/BureauAddress"
-                },
-                "maxItems": 20,
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Addresses"
+          "documents": {
+            "description": "JSON list: [{\"file_name\", \"party_id\", \"doc_type\"}]",
+            "title": "Documents",
+            "type": "string"
           },
-          "dob": {
-            "anyOf": [
-              {
-                "maxLength": 60,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Dob"
+          "files": {
+            "description": "Every document of the case",
+            "items": {
+              "contentMediaType": "application/octet-stream",
+              "type": "string"
+            },
+            "title": "Files",
+            "type": "array"
           },
-          "name": {
-            "anyOf": [
-              {
-                "maxLength": 200,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
+          "mock_overrides": {
+            "default": "{}",
+            "description": "JSON object per party_id",
+            "title": "Mock Overrides",
+            "type": "string"
           }
         },
-        "title": "BureauOverride",
+        "required": [
+          "files",
+          "documents"
+        ],
+        "title": "Body_trigger_v1_cases__case_id__trigger_post",
         "type": "object"
       },
       "CoApplicantLead": {
@@ -619,73 +574,8 @@
         "title": "CoApplicantLead",
         "type": "object"
       },
-      "DocumentIn": {
-        "additionalProperties": false,
-        "description": "One document: who it belongs to, what it is, and its OCR.",
-        "properties": {
-          "doc_type": {
-            "enum": [
-              "PAN",
-              "AADHAAR",
-              "PASSPORT",
-              "VOTER_ID",
-              "DRIVING_LICENCE",
-              "MARKSHEET",
-              "DEGREE_CERTIFICATE",
-              "ADMIT_LETTER",
-              "OTHER"
-            ],
-            "title": "Doc Type",
-            "type": "string"
-          },
-          "file_name": {
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "File Name",
-            "type": "string"
-          },
-          "ocr": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "OCR JSON (pages[])",
-            "title": "Ocr"
-          },
-          "party_id": {
-            "pattern": "^(applicant|co_applicant_[1-9][0-9]?)$",
-            "title": "Party Id",
-            "type": "string"
-          },
-          "raw_ocr": {
-            "anyOf": [
-              {
-                "maxLength": 300000,
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "description": "or plain text",
-            "title": "Raw Ocr"
-          }
-        },
-        "required": [
-          "party_id",
-          "doc_type",
-          "file_name"
-        ],
-        "title": "DocumentIn",
-        "type": "object"
-      },
       "DroppedValue": {
-        "description": "A value the LLM returned that is not in the OCR text.",
+        "description": "A value the LLM returned that was not kept.\n\n``reason`` is ``NOT_IN_SOURCE`` (not in the OCR text) or ``MASKED`` (replaced\nby a PII tag such as ``{NAME}``).",
         "properties": {
           "field": {
             "title": "Field",
@@ -706,33 +596,6 @@
           "reason"
         ],
         "title": "DroppedValue",
-        "type": "object"
-      },
-      "FaceMatchOverride": {
-        "additionalProperties": false,
-        "description": "Forced face match answer.",
-        "properties": {
-          "match_pct": {
-            "maximum": 100.0,
-            "minimum": 0.0,
-            "title": "Match Pct",
-            "type": "number"
-          },
-          "status": {
-            "default": "SUCCESS",
-            "enum": [
-              "SUCCESS",
-              "FAILED",
-              "PENDING"
-            ],
-            "title": "Status",
-            "type": "string"
-          }
-        },
-        "required": [
-          "match_pct"
-        ],
-        "title": "FaceMatchOverride",
         "type": "object"
       },
       "HTTPValidationError": {
@@ -849,66 +712,6 @@
         "title": "LeadRecord",
         "type": "object"
       },
-      "PartyMockOverride": {
-        "additionalProperties": false,
-        "description": "Forces mocked third-party answers for one party (until the real APIs are connected).",
-        "properties": {
-          "bureau": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/BureauOverride"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "email_ownership_verified": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Email Ownership Verified"
-          },
-          "face_match": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/FaceMatchOverride"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "pan_aadhaar_linked": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Pan Aadhaar Linked"
-          },
-          "voter_dl": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/VoterDlOverride"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          }
-        },
-        "title": "PartyMockOverride",
-        "type": "object"
-      },
       "RunResult": {
         "description": "Result of one trigger: the orchestrator summary and each agent's report.",
         "properties": {
@@ -955,33 +758,6 @@
         "title": "RunResult",
         "type": "object"
       },
-      "TriggerRequest": {
-        "additionalProperties": false,
-        "description": "Body of ``POST /v1/cases/{case_id}/trigger``: every document's OCR in one shot.",
-        "properties": {
-          "documents": {
-            "items": {
-              "$ref": "#/components/schemas/DocumentIn"
-            },
-            "maxItems": 200,
-            "minItems": 1,
-            "title": "Documents",
-            "type": "array"
-          },
-          "mock_overrides": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/PartyMockOverride"
-            },
-            "title": "Mock Overrides",
-            "type": "object"
-          }
-        },
-        "required": [
-          "documents"
-        ],
-        "title": "TriggerRequest",
-        "type": "object"
-      },
       "ValidationError": {
         "properties": {
           "ctx": {
@@ -1020,35 +796,6 @@
           "type"
         ],
         "title": "ValidationError",
-        "type": "object"
-      },
-      "VoterDlOverride": {
-        "additionalProperties": false,
-        "description": "Forced Karza Voter ID / DL answer.",
-        "properties": {
-          "status": {
-            "default": "VERIFIED",
-            "enum": [
-              "VERIFIED",
-              "NOT_VERIFIED"
-            ],
-            "title": "Status",
-            "type": "string"
-          },
-          "verified_on": {
-            "anyOf": [
-              {
-                "format": "date",
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Verified On"
-          }
-        },
-        "title": "VoterDlOverride",
         "type": "object"
       }
     }
@@ -1230,7 +977,7 @@
     },
     "/v1/cases/{case_id}/trigger": {
       "post": {
-        "description": "Run the Orchestrator Agent (and through it the Anomaly Detection Agent).\n\nArgs:\n    case_id: The case; its lead must exist.\n    body: Every document's OCR in one shot, plus the mock overrides.\n    service: The case service.\n\nReturns:\n    The run result with the orchestrator summary and the full report.",
+        "description": "Run the Orchestrator Agent (and through it the Anomaly Detection Agent).\n\nArgs:\n    case_id: The case; its lead must exist.\n    files: Every document (format depends on the mode).\n    documents: Who each file belongs to and its type, by file name.\n    service: The case service.\n    settings: Application settings (limits).\n    mock_overrides: Forced mock third-party answers per person.\n\nReturns:\n    The run result with the orchestrator summary and the full report.\n\nRaises:\n    InvalidInputError: If a file or the metadata is not accepted.",
         "operationId": "trigger_v1_cases__case_id__trigger_post",
         "parameters": [
           {
@@ -1248,9 +995,9 @@
         ],
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/TriggerRequest"
+                "$ref": "#/components/schemas/Body_trigger_v1_cases__case_id__trigger_post"
               }
             }
           },
@@ -1286,7 +1033,7 @@
     },
     "/v1/info": {
       "get": {
-        "description": "Return what the UI shows in its header.\n\nArgs:\n    settings: Application settings.\n\nReturns:\n    Environment, region, the extraction model and the third-party provider.",
+        "description": "Return what the UI needs: the mode, the accepted files and the models.\n\nArgs:\n    settings: Application settings.\n\nReturns:\n    Environment, region, mode, accepted file types, models and the provider.",
         "operationId": "info_v1_info_get",
         "responses": {
           "200": {
@@ -1302,7 +1049,7 @@
             "description": "Successful Response"
           }
         },
-        "summary": "Model, region and provider in use",
+        "summary": "Mode, models, region and provider in use",
         "tags": [
           "system"
         ]
@@ -1310,13 +1057,13 @@
     },
     "/v1/lead/autofill": {
       "post": {
-        "description": "Read every lead field from the application form OCR. Nothing is stored.\n\nArgs:\n    body: The application form OCR and the names typed in the UI.\n    service: The auto-fill service.\n\nReturns:\n    The grounded lead fields for review.",
+        "description": "Read every lead field from the application form; the file and its JSON are stored.\n\nArgs:\n    file: The application form (format depends on the mode).\n    service: The auto-fill service.\n    settings: Application settings (upload size limit).\n    case_id: The case; empty takes the form's application number.\n    applicant_name: Applicant name typed in the UI (hint).\n    co_applicant_names: JSON list of co-applicant names typed in the UI (hints).\n\nReturns:\n    The lead fields for review.\n\nRaises:\n    InvalidInputError: If the file or the case ID is not accepted.",
         "operationId": "autofill_v1_lead_autofill_post",
         "requestBody": {
           "content": {
-            "application/json": {
+            "multipart/form-data": {
               "schema": {
-                "$ref": "#/components/schemas/AutofillRequest"
+                "$ref": "#/components/schemas/Body_autofill_v1_lead_autofill_post"
               }
             }
           },
@@ -1344,7 +1091,7 @@
             "description": "Validation Error"
           }
         },
-        "summary": "Read the lead from an application form",
+        "summary": "Read the lead from an application form (file upload)",
         "tags": [
           "leads"
         ]

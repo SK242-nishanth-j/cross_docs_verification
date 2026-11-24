@@ -18,6 +18,7 @@ from pydantic import BaseModel
 from pydantic import SecretStr
 from strands import Agent
 from strands.models import BedrockModel
+from strands.types.content import ContentBlock
 from strands.types.exceptions import EventLoopException
 from strands.types.exceptions import MaxTokensReachedException
 from strands.types.exceptions import ModelThrottledException
@@ -167,6 +168,7 @@ def extract_structured(
     user_prompt: str,
     schema: type[SchemaT],
     name: str,
+    attachments: list[ContentBlock] | None = None,
 ) -> SchemaT:
     """Make one Strands Agent call whose answer must fit ``schema``.
 
@@ -176,6 +178,7 @@ def extract_structured(
         user_prompt: Rendered user prompt.
         schema: Pydantic model the answer must match.
         name: Agent name (shows up in traces).
+        attachments: Image or document blocks sent after the text (vision models).
 
     Returns:
         The validated answer.
@@ -187,8 +190,11 @@ def extract_structured(
     agent = Agent(
         model=model, system_prompt=system_prompt, callback_handler=None, name=name
     )
+    prompt: str | list[ContentBlock] = (
+        [{"text": user_prompt}, *attachments] if attachments else user_prompt
+    )
     try:
-        result = agent(user_prompt, structured_output_model=schema)
+        result = agent(prompt, structured_output_model=schema)
     except MODEL_CALL_ERRORS as exc:
         fatal = find_fatal(exc)
         if fatal:

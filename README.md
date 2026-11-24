@@ -1,26 +1,37 @@
 # Underwriting Copilot (dev): Orchestrator Agent + Anomaly Detection Agent
 
 Built to the ShellKode Code Development Framework: SK folder layout, Jinja2 prompts with YAML
-configs, Pydantic settings, JSON logs with correlation IDs, rate and request-size limits, IAM
-credentials only, and the SK pre-commit gate (ruff, ruff-format, bandit, gitleaks, mypy --strict,
-file checks, prompt validator).
+configs, Pydantic settings, JSON logs with correlation IDs, rate and request-size limits, and the
+SK pre-commit gate (ruff, ruff-format, bandit, gitleaks, mypy --strict, file checks, prompt validator).
+
+## Modes (backend configuration only)
+
+Set `mode` in `backend/src/config/anomaly_config.yaml` (or `ANOMALY_MODE` in `.env`). The UI reads
+the mode from `GET /v1/info` and offers the matching uploads.
+
+| Mode | Upload | Reads the documents | Compares | Model |
+|---|---|---|---|---|
+| `vision_llm` | PDF / images | vision LLM | the same LLM call (one per person) | Qwen3 VL 235B |
+| `structured` | key-value JSON | code, `structured_mapping.yaml` | `cross_verify` | none |
+| `ocr_llm` | raw OCR JSON / text | LLM | the same LLM call (one per person) | Qwen3 32B |
+| `ocr_hybrid` | raw OCR JSON / text | LLM per document (grounded) | `cross_verify` | Qwen3 32B |
+
+Every mode builds the same checks, the same report, the same truth table and the same JSON. The
+full-LLM modes get the `cross_verify` reason codes and rules in their prompt.
 
 ```
-UI 1. Case ID, applicant / co-applicant names
-   2. Upload application form OCR  -> POST /v1/lead/autofill   -> LLM fills the lead fields (nothing stored)
-   3. Review / edit                 -> POST /v1/cases/{id}/lead -> saved lead = BASE TRUTH
-   4. Upload every document's OCR JSON (one shot) -> POST /v1/cases/{id}/trigger
-        -> Orchestrator Agent (Strands Agent, LLM)                 src/ai/agents/orchestrator.py
-             -> tool anomaly_detection_agent                         src/ai/tools/anomaly_detection_tool.py
-                  a. OCR JSON -> text, Aadhaar masked                src/utils/ocr_text.py, src/security/pii.py
-                  b. LLM reads each document + grounding             .../anomaly_detection/extraction.py
-                  c. cross_verify: every source vs every source      .../anomaly_detection/cross_verify/
-                     1 applicant  2 father  3 mother  4 other co-applicants
-                  d. third-party checks (mock): KY-02 .. KY-06       .../anomaly_detection/kyc_rules.py
-        <- full report stored, short LLM summary for the CM
+UI 1. Upload the application form -> POST /v1/lead/autofill   -> lead fields for review
+                                      (file + its JSON stored under the case)
+   2. Review / edit                -> POST /v1/cases/{id}/lead -> saved lead = BASE TRUTH
+   3. Upload every document        -> POST /v1/cases/{id}/trigger (multipart, one shot)
+        -> Orchestrator Agent (Strands, LLM)               src/ai/agents/orchestrator.py
+             -> tool anomaly_detection_agent               src/ai/tools/anomaly_detection_tool.py
+                  read documents (per mode)                .../anomaly_detection/{structured_input, extraction, llm_verification}.py
+                  compare: applicant, father, mother, others (groups.py)
+                  third-party checks (mock)                .../anomaly_detection/third_party.py
+                  checklist + truth table + JSON           .../anomaly_detection/{report, truth_table}.py
+        <- report stored, every document's JSON stored next to its file, short summary for the CM
 ```
-
-The LLM does not decide match / mismatch. `cross_verify` does, deterministically.
 
 ## Run
 
@@ -38,96 +49,88 @@ copy .env.example .env.local          # set VITE_DEV_PROXY_TARGET to the backend
 npm run dev
 ```
 
-Pre-commit (once the folder is a git repository), from `dev`:
-```powershell
-pip install pre-commit
-pre-commit install
-pre-commit run --all-files
-```
-
 Other scripts, from `dev/backend`:
 ```powershell
-.venv\Scripts\python -m scripts.export_openapi                 # writes contracts/openapi.json
+.venv\Scripts\python -m scripts.export_openapi                   # writes contracts/openapi.json
 .venv\Scripts\python -m scripts.cross_verify_cli -i checks.json  # cross_verify demo
+.venv\Scripts\python scripts/convert_batch_ocr.py ...            # batch OCR export -> payload JSON
 ```
 
 ## Input formats
 
-**Application form** (auto-fill): the OCR JSON as produced
-(`{"status": "SUCCESS", "pages": [{"page_number": 1, "text_lines": [...], "structured_lines": [...]}]}`)
-or a `.txt` file with the plain text.
+- **vision_llm**: the application form and documents as PDF, PNG, JPG or WEBP. PDF pages are
+  rendered to images (`vision.pdf_input: images`), or sent as a PDF (`document`).
+- **structured**: key-value JSON. The application form layout is `app_form_structured.json`
+  (`Applicant`, `Co-Applicant 1`, ...); names are joined into the full name. Documents come as one
+  JSON per document, or one case file laid out like `case1_structured.json` (each person section
+  with its `Documents` list; each document has `File`, `Document Type` and `Fields`). In a case
+  file the person comes from the section, and every document is read and stored on its own.
+  All key paths: `structured_mapping.yaml`.
+- **ocr_llm / ocr_hybrid**: OCR JSON as produced (`{"status": ..., "pages": [{"page_number": 1,
+  "text_lines": [...], "structured_lines": [...]}]}`) or plain text. A payload JSON
+  (`{"documents": [{"party_id", "doc_type", "file_name", "ocr"}]}`) and the samples also work.
 
-**Documents** (trigger): upload the OCR JSON files directly (party and document type are guessed
-from the file name and can be changed), or one payload JSON:
-```json
-{
-  "documents": [
-    {"party_id": "applicant", "doc_type": "PAN", "file_name": "Applicant PAN.json",
-     "ocr": {"status": "SUCCESS", "pages": [{"page_number": 1, "text_lines": ["..."]}]}}
-  ],
-  "mock_overrides": {}
-}
-```
-- `party_id`: `applicant`, `co_applicant_1`, `co_applicant_2`, ... (same as the lead)
-- `doc_type`: `PAN`, `AADHAAR`, `PASSPORT`, `VOTER_ID`, `DRIVING_LICENCE`, `MARKSHEET`,
-  `DEGREE_CERTIFICATE`, `ADMIT_LETTER`, `OTHER`
-- `raw_ocr` (plain text) can be sent instead of `ocr`.
+The person (`applicant`, `co_applicant_1`, ...) and the document type of each file are guessed from
+the file name and can be changed in the UI before the trigger.
 
-Synthetic example of everything: `backend/contracts/examples/synthetic_case.json` (UI: Load sample).
-API contract: `backend/contracts/openapi.json`.
+## What is compared (the lead is the first source)
 
-## What is compared (all pairs; the lead is one of the sources)
-
-| Order | Party | Group | Sources |
+| Order | Person | Checks | Sources |
 |---|---|---|---|
-| 1 | Applicant | NAME (KY-01) | lead, every applicant document, bureau |
-| | | DOB (KY-01) | lead, every applicant document, bureau |
-| | | FATHER_NAME / MOTHER_NAME | lead, applicant documents that print it |
-| | | ADDRESS | lead, applicant documents that print it |
-| | | PAN · AADHAAR (last 4) · PASSPORT_NO · DL_NO · VOTER_ID | lead, documents of that type |
-| 2 | Father | PARENT_NAME (KY-01) | applicant's father name (lead + applicant documents) vs father's lead name, his documents, bureau |
-| | | DOB (KY-01) · own FATHER/MOTHER_NAME · IDs | father's lead, his documents (+ bureau for DOB) |
-| | | HOUSEHOLD_ADDRESS | father's lead + documents vs applicant's lead + documents |
+| 1 | Applicant | Name, date of birth | lead, every applicant document, bureau (mock) |
+| | | Father name, mother name, address | lead, applicant documents that print it |
+| | | PAN, Aadhaar (last 4), passport, DL, voter ID | lead, documents of that type |
+| 2 | Father | Name as parent | applicant's father name (lead + applicant documents) vs father's lead name, his documents, bureau |
+| | | Date of birth, own parents, IDs | father's lead, his documents (+ bureau for DOB) |
+| | | Household address | father's lead + documents vs applicant's address |
 | 3 | Mother | same as father | |
-| 4 | Other co-applicants | NAME · DOB · FATHER/MOTHER_NAME · ADDRESS · IDs | their own lead, documents, bureau |
+| 4 | Others | Name, DOB, parents, address, IDs | their own lead, documents, bureau |
 
-Then per party: KY-02 lead address vs bureau addresses from the last 12 months, KY-03 PAN-Aadhaar
-link (sanction condition), KY-04 Voter ID / DL (CM justification), KY-05 email, KY-06 face match
->= 75% (critical). No document presence checks.
+Then per person (mocked APIs): bureau address (last 12 months), PAN-Aadhaar link (sanction
+condition), Voter ID / DL verification (CM justification), email, face match >= 75% (critical).
+The checklist lists every check as done, only one source, or no data, with its result.
 
 ## Layout
 
 ```
 backend/src/
-  main.py                         app factory, middleware, error mapping
-  api/                            routers: system, leads, cases, dependencies
-  services/                       autofill_service, case_service, models (lead + API shapes), errors
-  adapters/bedrock/client.py      Bedrock models for Strands (timeouts, retries), schema-bound calls
-  adapters/storage/case_store.py  JSON per case: lead.json, result.json, runs/
-  adapters/kyc/                   provider interface, models, mock provider
-  ai/agents/orchestrator.py       Orchestrator Agent
-  ai/agents/anomaly_detection/    agent, extraction, parties, sources, groups, pairs,
-                                  bureau_rules, kyc_rules, findings, report, schemas
-    cross_verify/                 the deterministic engine, split by field type
-  ai/tools/                       anomaly_detection_tool (@tool, audit logs)
-  ai/prompts/                     manager.py, templates/*.j2, configs/*.yaml
-  ai/evaluators/grounding.py      LLM values must be found in the OCR text
-  config/                         settings.py (pydantic-settings), anomaly_rules.json
-  security/                       rate_limit, request_limits, pii (Aadhaar masking)
-  utils/                          ocr_text, http_types, logging/ (JSON logger, correlation middleware)
-backend/scripts/                  export_openapi, cross_verify_cli
-backend/contracts/                openapi.json, examples/
-scripts/validate_prompts.py       pre-commit prompt validator
-frontend/src/                     app/, features/anomaly-detection/, services/, lib/, config/, styles/, types/
+  main.py                          app factory, middleware, error mapping
+  api/                             system (info, samples), leads (auto-fill, lead), cases (trigger, result)
+  services/                        autofill_service, case_service, models, errors
+  adapters/bedrock/client.py       Bedrock models for Strands, schema-bound calls (text + images)
+  adapters/storage/case_store.py   per case: lead, results, uploads and their extracted JSON
+  adapters/kyc/                    provider interface, models, mock provider
+  ai/agents/orchestrator.py        Orchestrator Agent
+  ai/agents/anomaly_detection/
+    agent.py                       runs the configured mode
+    schemas.py                     documents, case input, extraction record
+    structured_input.py            structured JSON -> fields (no LLM)
+    extraction.py                  hybrid: LLM reads one document, grounded in its OCR
+    llm_verification.py            full LLM: read + compare, one call per person
+    sources.py, groups.py          people, value sources, the checks in order
+    comparison.py                  findings and cross_verify on every pair
+    third_party.py                 mocked third-party checks
+    report.py, truth_table.py      checklist, report, truth table
+    cross_verify/                  the engine: common, config, names, dates, address_parser,
+                                   addresses, numbers, contacts, short_text, checks, engine
+  ai/prompts/                      manager.py, templates/*.j2, configs/*.yaml (model per prompt)
+  config/                          settings.py, anomaly_config.yaml, structured_mapping.yaml
+  security/                        rate_limit, request_limits, uploads, pii (Aadhaar masking)
+  utils/                           images (PDF / image blocks), ocr_text, logging/
 ```
+
+## Storage
+
+`<DATA_DIR>/<case_id>/`: `lead.json`, `result.json`, `runs/<run_id>.json`,
+`application_form/<file>` + `<file>.extracted.json`, `documents/<party_id>/<file>` +
+`<file>.extracted.json`. Switch with `storage.keep_uploads` / `storage.keep_extracted_json`.
 
 ## Privacy
 
-- Aadhaar: only the last 4 digits are kept, everywhere. On Aadhaar cards every 12-digit number is
-  masked; on other documents only numbers on or right after a line that mentions Aadhaar / UID.
-- The raw OCR JSON is never stored; the run record keeps the masked text only.
+- The extracted JSON, the report and the logs keep only the last 4 Aadhaar digits.
+- Uploaded files are stored as they were sent (`keep_uploads: true`), so an Aadhaar image or OCR
+  file keeps the full number. Turn it off, or move storage to an encrypted store, before real use.
 - The Orchestrator Agent's LLM sees only the case_id and a short summary, never document text.
-- Logs carry IDs, counts and error types only; never document values.
 
 ## Mock third-party overrides
 

@@ -23,8 +23,8 @@ from typing import Any
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from src.ai.agents.anomaly_detection.schemas import CaseInput  # noqa: E402
-from src.ai.agents.anomaly_detection.schemas import TriggerRequest  # noqa: E402
+from src.ai.agents.anomaly_detection.schemas import DocumentMeta  # noqa: E402
+from src.services.models import Lead  # noqa: E402
 
 
 def _page_text(page: dict[str, Any]) -> str:
@@ -102,7 +102,10 @@ def main() -> None:
     docs = convert(export, mapping)
 
     payload = {"documents": docs, "mock_overrides": {}}
-    TriggerRequest.model_validate(payload)
+    for doc in docs:
+        DocumentMeta.model_validate(
+            {k: doc[k] for k in ("file_name", "party_id", "doc_type")}
+        )
     args.out.write_text(
         json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
@@ -111,13 +114,7 @@ def main() -> None:
     if args.sample:
         sample = json.loads(args.sample.read_text(encoding="utf-8-sig"))
         sample["documents"] = docs
-        CaseInput.model_validate(
-            {
-                key: sample.get(key)
-                for key in ("case_id", "lead", "documents", "mock_overrides")
-                if key in sample
-            }
-        )
+        Lead.model_validate(sample["lead"])
         args.sample.write_text(
             json.dumps(sample, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )

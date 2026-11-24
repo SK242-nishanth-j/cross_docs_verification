@@ -1,21 +1,26 @@
 """
 File: settings.py
-Purpose: Validated application settings loaded from environment variables.
+Purpose: Validated settings from environment variables, plus the YAML configuration files.
 Owner: genai-platform@shellkode
-Created: 2026-11-24 | Deps: pydantic, pydantic-settings
+Created: 2026-11-24 | Deps: pydantic, pydantic-settings, pyyaml
 """
 
 import os
 from functools import lru_cache
 from pathlib import Path
+from typing import Any
 from typing import Literal
+from typing import get_args
 
+import yaml
 from pydantic import Field
 from pydantic import SecretStr
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from pydantic_settings import SettingsConfigDict
 
+Mode = Literal["vision_llm", "structured", "ocr_llm", "ocr_hybrid"]
+MODES: tuple[str, ...] = get_args(Mode)
 _BYTES_PER_MB = 1024 * 1024
 _SRC_DIR = Path(__file__).resolve().parent.parent
 _CROSS_VERIFY_CONFIG = (
@@ -68,10 +73,14 @@ class Settings(BaseSettings):
     autofill_max_ocr_chars: int = Field(default=60_000, ge=5_000, le=100_000)
     max_documents: int = Field(default=60, ge=1, le=200)
 
+    # Anomaly Detection mode; empty uses "mode" in anomaly_config.yaml.
+    anomaly_mode: Mode | None = None
+
     # Storage and configuration files.
     data_dir: Path = Path("storage")
     samples_dir: Path = Path("contracts/examples")
-    anomaly_rules_path: Path = _SRC_DIR / "config" / "anomaly_rules.json"
+    anomaly_config_path: Path = _SRC_DIR / "config" / "anomaly_config.yaml"
+    structured_mapping_path: Path = _SRC_DIR / "config" / "structured_mapping.yaml"
     cross_verify_config_path: Path = _CROSS_VERIFY_CONFIG
 
     # HTTP.
@@ -81,7 +90,7 @@ class Settings(BaseSettings):
     )
     max_request_mb: int = Field(default=50, ge=1, le=500)
 
-    @field_validator("bedrock_model_id")
+    @field_validator("bedrock_model_id", "anomaly_mode", mode="before")
     @classmethod
     def _blank_to_none(cls, value: str | None) -> str | None:
         """Treat an empty value in an env file as "not set"."""
@@ -127,3 +136,41 @@ def get_settings() -> Settings:
         pydantic.ValidationError: If the environment holds invalid values.
     """
     return Settings()
+
+
+def _read_yaml(path: Path) -> dict[str, Any]:
+    """Read one YAML mapping."""
+    with path.open(encoding="utf-8") as handle:
+        data: Any = yaml.safe_load(handle)
+    if not isinstance(data, dict):
+        raise ValueError(f"{path.name}: expected a mapping at the top")
+    return data
+
+
+@lru_cache(maxsize=1)
+def get_anomaly_config() -> dict[str, Any]:
+    """Return anomaly_config.yaml with the effective ``mode`` filled in.
+
+    Returns:
+        The configuration; ``mode`` is ``ANOMALY_MODE`` when set, else the file's.
+
+    Raises:
+        ValueError: If the mode is unknown or has no ``modes`` entry.
+    """
+    settings = get_settings()
+    config = _read_yaml(settings.anomaly_config_path)
+    mode = settings.anomaly_mode or config.get("mode")
+    if mode not in MODES or mode not in config.get("modes", {}):
+        raise ValueError(f"anomaly mode must be one of {', '.join(MODES)}")
+    config["mode"] = mode
+    return config
+
+
+@lru_cache(maxsize=1)
+def get_structured_mapping() -> dict[str, Any]:
+    """Return structured_mapping.yaml (key paths of the structured JSON files).
+
+    Returns:
+        The mapping configuration.
+    """
+    return _read_yaml(get_settings().structured_mapping_path)
