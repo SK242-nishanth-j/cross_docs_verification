@@ -15,6 +15,7 @@ from botocore.exceptions import ClientError
 from botocore.exceptions import NoCredentialsError
 from botocore.exceptions import NoRegionError
 from pydantic import BaseModel
+from pydantic import SecretStr
 from strands import Agent
 from strands.models import BedrockModel
 from strands.types.exceptions import EventLoopException
@@ -80,6 +81,27 @@ def find_fatal(exc: BaseException) -> str | None:
     return None
 
 
+def _build_session(s: Settings) -> boto3.Session:
+    """Create the boto3 session from the configured AWS keys and region.
+
+    Args:
+        s: Application settings.
+
+    Returns:
+        A boto3 session. Keys left unset fall back to the standard AWS chain.
+    """
+
+    def _val(secret: SecretStr | None) -> str | None:
+        return secret.get_secret_value() if secret is not None else None
+
+    return boto3.Session(
+        aws_access_key_id=_val(s.aws_access_key_id),
+        aws_secret_access_key=_val(s.aws_secret_access_key),
+        aws_session_token=_val(s.aws_session_token),
+        region_name=s.aws_region,
+    )
+
+
 class BedrockModels:
     """Creates one Strands ``BedrockModel`` per (model, temperature, max_tokens)."""
 
@@ -102,8 +124,8 @@ class BedrockModels:
     def get(self, model_id: str, temperature: float, max_tokens: int) -> BedrockModel:
         """Return a cached Bedrock model with connect/read timeouts and retries.
 
-        Credentials come from the standard AWS chain (IAM Roles Anywhere profile
-        locally, an IAM role when deployed). Access keys are never passed here.
+        Credentials come from the AWS access key, secret key and session token
+        settings.
 
         Args:
             model_id: Model ID from the prompt config.
@@ -117,9 +139,7 @@ class BedrockModels:
         with self._lock:
             if key not in self._models:
                 s = self._settings
-                session = boto3.Session(
-                    profile_name=s.aws_profile, region_name=s.aws_region
-                )
+                session = _build_session(s)
                 self._models[key] = BedrockModel(
                     boto_session=session,
                     boto_client_config=BotoConfig(
@@ -131,6 +151,9 @@ class BedrockModels:
                         },
                     ),
                     model_id=key[0],
+                    # Qwen3 on ConverseStream drops the first tool-input delta
+                    # ('{"'), so the tool JSON fails to parse. Use Converse.
+                    streaming=False,
                     temperature=temperature,
                     max_tokens=max_tokens,
                 )

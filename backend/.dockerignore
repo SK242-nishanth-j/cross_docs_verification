@@ -4,6 +4,7 @@ __pycache__
 .env*
 !.env.example
 storage
+contracts/examples/local_*.json
 scripts
 contracts/openapi.json
 .ruff_cache

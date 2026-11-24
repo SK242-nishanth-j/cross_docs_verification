@@ -16,6 +16,11 @@ dist/
 *.local
 # Case data (runtime, never committed)
 backend/storage/
+# Samples built from real customer cases (real PII): local only
+backend/contracts/examples/local_*.json
+/case*_full.json
+/case*_documents.json
+/case*_mapping.json
 # Logs and OS files
 *.log
 .DS_Store

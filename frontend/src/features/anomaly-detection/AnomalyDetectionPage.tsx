@@ -92,7 +92,11 @@ export function AnomalyDetectionPage() {
       setCoNames(p.lead.co_applicants.map((c) => c.name));
       setLead(p.lead);
       setGrounding({});
-      setAutofillInfo("Sample loaded (synthetic data, not auto-filled).");
+      setAutofillInfo(
+        name.startsWith("local_")
+          ? "Sample loaded (local case data, not auto-filled)."
+          : "Sample loaded (synthetic data, not auto-filled).",
+      );
       setDocuments(p.documents);
       setOverridesText(JSON.stringify(p.mock_overrides ?? {}, null, 2));
       setLeadSavedFor(null);
@@ -118,7 +122,17 @@ export function AnomalyDetectionPage() {
       setAutofillInfo(
         `Auto-filled ${Object.keys(res.grounding).length} field(s) from ${res.ocr.pages} page(s) of ${file.name} ` +
           `in ${(res.elapsed_ms / 1000).toFixed(1)} s.` +
-          (res.dropped.length ? ` ${res.dropped.length} value(s) dropped (not found in the OCR): ${res.dropped.map((d) => d.field).join(", ")}.` : "") +
+          (() => {
+            const masked = res.dropped.filter((d) => d.reason === "MASKED");
+            const missing = res.dropped.filter((d) => d.reason !== "MASKED");
+            const list = (items: typeof res.dropped) => items.map((d) => d.field).join(", ");
+            return (
+              (masked.length
+                ? ` ${masked.length} value(s) masked by the Bedrock PII guardrail (enter them by hand): ${list(masked)}.`
+                : "") +
+              (missing.length ? ` ${missing.length} value(s) dropped (not found in the OCR): ${list(missing)}.` : "")
+            );
+          })() +
           " Review every field before creating the lead.",
       );
       setLeadSavedFor(null);

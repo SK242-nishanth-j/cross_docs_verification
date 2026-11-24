@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
+from pydantic import SecretStr
 from pydantic import field_validator
 from pydantic_settings import BaseSettings
 from pydantic_settings import SettingsConfigDict
@@ -31,15 +32,16 @@ class Settings(BaseSettings):
     """Application settings, validated at start-up.
 
     Values come from environment variables or, for local development, from
-    ``.env.<environment>`` (for example ``.env.dev``). List values are JSON.
+    ``.env`` and then ``.env.<environment>`` (for example ``.env.dev``); the
+    latter wins, and real environment variables win over both. List values are
+    JSON.
 
-    AWS access keys are never read here. Credentials come from the standard AWS
-    credential chain: an IAM Roles Anywhere profile locally (``AWS_PROFILE``)
-    and an IAM role when deployed.
+    AWS credentials come from ``AWS_ACCESS_KEY_ID``, ``AWS_SECRET_ACCESS_KEY``
+    and ``AWS_SESSION_TOKEN``.
     """
 
     model_config = SettingsConfigDict(
-        env_file=f".env.{os.getenv('ENVIRONMENT', 'dev')}",
+        env_file=(".env", f".env.{os.getenv('ENVIRONMENT', 'dev')}"),
         env_file_encoding="utf-8",
         extra="ignore",
     )
@@ -51,7 +53,10 @@ class Settings(BaseSettings):
     # AWS Bedrock. Model IDs and parameters live in src/ai/prompts/configs/*.yaml;
     # BEDROCK_MODEL_ID overrides the model of every prompt when set.
     aws_region: str = "ap-south-1"
-    aws_profile: str | None = None
+    # AWS keys (keep them in the git-ignored .env / .env.<environment>).
+    aws_access_key_id: SecretStr | None = None
+    aws_secret_access_key: SecretStr | None = None
+    aws_session_token: SecretStr | None = None
     bedrock_model_id: str | None = None
     bedrock_connect_timeout_s: int = Field(default=10, ge=1, le=60)
     bedrock_read_timeout_s: int = Field(default=180, ge=10, le=900)
@@ -76,13 +81,30 @@ class Settings(BaseSettings):
     )
     max_request_mb: int = Field(default=50, ge=1, le=500)
 
-    @field_validator("aws_profile", "bedrock_model_id")
+    @field_validator("bedrock_model_id")
     @classmethod
     def _blank_to_none(cls, value: str | None) -> str | None:
         """Treat an empty value in an env file as "not set"."""
         if value is None or not value.strip():
             return None
         return value.strip()
+
+    @field_validator(
+        "aws_access_key_id", "aws_secret_access_key", "aws_session_token", mode="before"
+    )
+    @classmethod
+    def _blank_secret_to_none(cls, value: object) -> object:
+        """Treat an empty AWS key in an env file as "not set".
+
+        Args:
+            value: Raw value from the environment.
+
+        Returns:
+            None for a blank string, the stripped string otherwise.
+        """
+        if isinstance(value, str):
+            return value.strip() or None
+        return value
 
     @property
     def max_request_bytes(self) -> int:

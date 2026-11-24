@@ -27,7 +27,7 @@ The LLM does not decide match / mismatch. `cross_verify` does, deterministically
 Backend (Python 3.12), from `dev/backend`:
 ```powershell
 .venv\Scripts\python -m pip install -r requirements-dev.txt
-copy .env.example .env.dev            # set AWS_PROFILE (IAM Roles Anywhere); never access keys
+copy .env.example .env                # set AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN
 .venv\Scripts\python -m uvicorn src.main:app --port 8000
 ```
 

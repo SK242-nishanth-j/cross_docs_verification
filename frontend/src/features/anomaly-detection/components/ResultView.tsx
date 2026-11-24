@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { COLOR_LABEL } from "../../../lib/colors";
 import type { Color, RunResult } from "../../../types/api";
 import { Extraction, PartySection } from "./PartyResults";
 import { Chip } from "./ResultAtoms";
+import { TruthTable } from "./TruthTable";
 
 export function ResultView({ run }: { run: RunResult }) {
+  const [view, setView] = useState<"table" | "details">("table");
   const r = run.results.anomaly_detection;
   const s = r.summary;
   const o = run.orchestrator;
@@ -73,47 +76,62 @@ export function ResultView({ run }: { run: RunResult }) {
         </div>
       )}
 
-      <h3>Anomalies ({r.anomalies.length})</h3>
-      {r.anomalies.length === 0 ? (
-        <p className="muted">No anomalies found.</p>
-      ) : (
-        <table className="findings">
-          <thead>
-            <tr>
-              <th style={{ width: 120 }}>Result</th>
-              <th style={{ width: 130 }}>Party</th>
-              <th style={{ width: 300 }}>Check</th>
-              <th style={{ width: 64 }}>Rule</th>
-              <th style={{ width: 74 }}>Severity</th>
-              <th>Details</th>
-            </tr>
-          </thead>
-          <tbody>
-            {r.anomalies.map((a) => (
-              <tr key={a.check_id}>
-                <td>
-                  <Chip color={a.color} />
-                  {a.critical && <span className="chip red critical">CRITICAL</span>}
-                </td>
-                <td>{a.party_id}</td>
-                <td>{a.title}</td>
-                <td>{a.rule_id ?? "—"}</td>
-                <td>{a.severity ?? "—"}</td>
-                <td>
-                  {a.message}
-                  {a.mitigant && <div className="mitigant">Mitigant: {a.mitigant}</div>}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+      <div className="view-tabs">
+        <button type="button" className={view === "table" ? "active" : "secondary"} onClick={() => setView("table")}>
+          Truth table
+        </button>
+        <button type="button" className={view === "details" ? "active" : "secondary"} onClick={() => setView("details")}>
+          Detailed report ({r.anomalies.length} anomalies)
+        </button>
+      </div>
 
-      <h3>By party, in check order (click a row for the pair-by-pair comparison)</h3>
-      {r.parties.map((p, i) => (
-        <PartySection key={p.party_id} party={p} step={i + 1} />
-      ))}
-      <Extraction report={r} />
+      {view === "table" ? (
+        <TruthTable parties={r.parties} />
+      ) : (
+        <>
+          <h3>Anomalies ({r.anomalies.length})</h3>
+          {r.anomalies.length === 0 ? (
+            <p className="muted">No anomalies found.</p>
+          ) : (
+            <table className="findings">
+              <thead>
+                <tr>
+                  <th style={{ width: 120 }}>Result</th>
+                  <th style={{ width: 130 }}>Party</th>
+                  <th style={{ width: 300 }}>Check</th>
+                  <th style={{ width: 64 }}>Rule</th>
+                  <th style={{ width: 74 }}>Severity</th>
+                  <th>Details</th>
+                </tr>
+              </thead>
+              <tbody>
+                {r.anomalies.map((a) => (
+                  <tr key={a.check_id}>
+                    <td>
+                      <Chip color={a.color} />
+                      {a.critical && <span className="chip red critical">CRITICAL</span>}
+                    </td>
+                    <td>{a.party_id}</td>
+                    <td>{a.title}</td>
+                    <td>{a.rule_id ?? "—"}</td>
+                    <td>{a.severity ?? "—"}</td>
+                    <td>
+                      {a.message}
+                      {a.mitigant && <div className="mitigant">Mitigant: {a.mitigant}</div>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+
+          <h3>By party, in check order (click a row for the pair-by-pair comparison)</h3>
+          {r.parties.map((p, i) => (
+            <PartySection key={p.party_id} party={p} step={i + 1} />
+          ))}
+          <Extraction report={r} />
+        </>
+      )}
       {Boolean(r.config.third_party_is_mock) && (
         <p className="muted">Third-party results (bureau, Karza, email ownership, face match) are mocked.</p>
       )}

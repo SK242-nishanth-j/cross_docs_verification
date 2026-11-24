@@ -153,7 +153,11 @@ class AutofillRequest(BaseModel):
 
 
 class DroppedValue(BaseModel):
-    """A value the LLM returned that is not in the OCR text."""
+    """A value the LLM returned that was not kept.
+
+    ``reason`` is ``NOT_IN_SOURCE`` (not in the OCR text) or ``MASKED`` (replaced
+    by a PII tag such as ``{NAME}``).
+    """
 
     field: str
     value: str

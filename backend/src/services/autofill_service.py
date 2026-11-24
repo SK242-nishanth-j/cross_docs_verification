@@ -5,6 +5,7 @@ Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: pydantic, strands-agents
 """
 
+import re
 import time
 from typing import Any
 
@@ -34,6 +35,8 @@ logger = get_logger(__name__)
 
 PROMPT_NAME = "application_form"
 _COPY = "Copy exactly as printed. null if not printed."
+# Anonymisation tags such as {NAME}, {PHONE}, {US_BANK_ACCOUNT_NUMBER}.
+_MASK_TAG = re.compile(r"\{[A-Z][A-Z0-9_]*\}")
 _REL_SYNONYMS = {
     "dad": "father",
     "mom": "mother",
@@ -160,8 +163,12 @@ def _grounded(
         text = clean(value)
         if text is None:
             continue
-        how = ground(text, source)
         path = f"{prefix}.{name}"
+        if _MASK_TAG.search(text):
+            # The Bedrock Guardrails PII filter replaced the value with a tag.
+            dropped.append(DroppedValue(field=path, value=text, reason="MASKED"))
+            continue
+        how = ground(text, source)
         if how:
             out[name] = text
             meta[path] = how
