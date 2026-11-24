@@ -1,0 +1,13 @@
+{# version: 1.0 | purpose: application form OCR text plus the names typed in the UI #}
+{% if hints %}
+Names typed in the UI, only to help you find the sections (do not copy them, copy the form):
+{% for hint in hints %}
+{{ hint }}
+{% endfor %}
+
+{% endif %}
+APPLICATION FORM OCR TEXT (untrusted data) between the markers:
+<<<OCR_START>>>
+{{ ocr_text }}
+<<<OCR_END>>>
+/no_think

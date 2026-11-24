@@ -1,0 +1,1424 @@
+{
+  "components": {
+    "schemas": {
+      "ApplicantLead": {
+        "additionalProperties": false,
+        "description": "The applicant (student), with the admission details.",
+        "properties": {
+          "aadhaar_last4": {
+            "anyOf": [
+              {
+                "maxLength": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aadhaar Last4"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "admission_status": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Admission Status"
+          },
+          "country": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Country"
+          },
+          "course": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Course"
+          },
+          "dob": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dob"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "father_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Father Name"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "mobile": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mobile"
+          },
+          "mother_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mother Name"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "pan": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pan"
+          },
+          "passport_or_dl_number": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passport Or Dl Number"
+          },
+          "permanent_address": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permanent Address"
+          },
+          "university": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "University"
+          },
+          "voter_id": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voter Id"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "title": "ApplicantLead",
+        "type": "object"
+      },
+      "AutofillRequest": {
+        "additionalProperties": false,
+        "description": "Body of ``POST /v1/lead/autofill``: the application form OCR and typed names.",
+        "properties": {
+          "applicant_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Applicant Name"
+          },
+          "co_applicant_names": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 6,
+            "title": "Co Applicant Names",
+            "type": "array"
+          },
+          "ocr": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "OCR JSON (pages[])",
+            "title": "Ocr"
+          },
+          "raw_ocr": {
+            "anyOf": [
+              {
+                "maxLength": 300000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "or plain text",
+            "title": "Raw Ocr"
+          }
+        },
+        "title": "AutofillRequest",
+        "type": "object"
+      },
+      "AutofillResponse": {
+        "description": "Lead fields read from the application form, for review in the UI.",
+        "properties": {
+          "dropped": {
+            "items": {
+              "$ref": "#/components/schemas/DroppedValue"
+            },
+            "title": "Dropped",
+            "type": "array"
+          },
+          "elapsed_ms": {
+            "title": "Elapsed Ms",
+            "type": "integer"
+          },
+          "grounding": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "title": "Grounding",
+            "type": "object"
+          },
+          "lead": {
+            "additionalProperties": true,
+            "title": "Lead",
+            "type": "object"
+          },
+          "model_id": {
+            "title": "Model Id",
+            "type": "string"
+          },
+          "ocr": {
+            "additionalProperties": true,
+            "title": "Ocr",
+            "type": "object"
+          },
+          "prompt_version": {
+            "title": "Prompt Version",
+            "type": "string"
+          }
+        },
+        "required": [
+          "lead",
+          "grounding",
+          "dropped",
+          "ocr",
+          "model_id",
+          "prompt_version",
+          "elapsed_ms"
+        ],
+        "title": "AutofillResponse",
+        "type": "object"
+      },
+      "BureauAddress": {
+        "additionalProperties": false,
+        "description": "One address reported by the bureau.",
+        "properties": {
+          "address": {
+            "maxLength": 1000,
+            "minLength": 1,
+            "title": "Address",
+            "type": "string"
+          },
+          "reported_on": {
+            "format": "date",
+            "title": "Reported On",
+            "type": "string"
+          }
+        },
+        "required": [
+          "address",
+          "reported_on"
+        ],
+        "title": "BureauAddress",
+        "type": "object"
+      },
+      "BureauOverride": {
+        "additionalProperties": false,
+        "description": "Forced bureau answer for one party.",
+        "properties": {
+          "addresses": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/BureauAddress"
+                },
+                "maxItems": 20,
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Addresses"
+          },
+          "dob": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dob"
+          },
+          "name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name"
+          }
+        },
+        "title": "BureauOverride",
+        "type": "object"
+      },
+      "CoApplicantLead": {
+        "additionalProperties": false,
+        "description": "A co-applicant, with bank and employment details.",
+        "properties": {
+          "aadhaar_last4": {
+            "anyOf": [
+              {
+                "maxLength": 12,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aadhaar Last4"
+          },
+          "account_number": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Number"
+          },
+          "address": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Address"
+          },
+          "bank_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bank Name"
+          },
+          "dob": {
+            "anyOf": [
+              {
+                "maxLength": 60,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dob"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "maxLength": 254,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "employer_address": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employer Address"
+          },
+          "employer_name": {
+            "anyOf": [
+              {
+                "maxLength": 300,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Employer Name"
+          },
+          "father_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Father Name"
+          },
+          "gender": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gender"
+          },
+          "mobile": {
+            "anyOf": [
+              {
+                "maxLength": 40,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mobile"
+          },
+          "mother_name": {
+            "anyOf": [
+              {
+                "maxLength": 200,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Mother Name"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "pan": {
+            "anyOf": [
+              {
+                "maxLength": 20,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pan"
+          },
+          "party_id": {
+            "pattern": "^co_applicant_[1-9][0-9]?$",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "passport_or_dl_number": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Passport Or Dl Number"
+          },
+          "permanent_address": {
+            "anyOf": [
+              {
+                "maxLength": 1000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Permanent Address"
+          },
+          "relationship": {
+            "enum": [
+              "father",
+              "mother",
+              "spouse",
+              "brother",
+              "sister",
+              "guardian",
+              "uncle",
+              "aunt",
+              "grandfather",
+              "grandmother",
+              "other"
+            ],
+            "title": "Relationship",
+            "type": "string"
+          },
+          "voter_id": {
+            "anyOf": [
+              {
+                "maxLength": 30,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Voter Id"
+          }
+        },
+        "required": [
+          "name",
+          "party_id",
+          "relationship"
+        ],
+        "title": "CoApplicantLead",
+        "type": "object"
+      },
+      "DocumentIn": {
+        "additionalProperties": false,
+        "description": "One document: who it belongs to, what it is, and its OCR.",
+        "properties": {
+          "doc_type": {
+            "enum": [
+              "PAN",
+              "AADHAAR",
+              "PASSPORT",
+              "VOTER_ID",
+              "DRIVING_LICENCE",
+              "MARKSHEET",
+              "DEGREE_CERTIFICATE",
+              "ADMIT_LETTER",
+              "OTHER"
+            ],
+            "title": "Doc Type",
+            "type": "string"
+          },
+          "file_name": {
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "File Name",
+            "type": "string"
+          },
+          "ocr": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "OCR JSON (pages[])",
+            "title": "Ocr"
+          },
+          "party_id": {
+            "pattern": "^(applicant|co_applicant_[1-9][0-9]?)$",
+            "title": "Party Id",
+            "type": "string"
+          },
+          "raw_ocr": {
+            "anyOf": [
+              {
+                "maxLength": 300000,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "or plain text",
+            "title": "Raw Ocr"
+          }
+        },
+        "required": [
+          "party_id",
+          "doc_type",
+          "file_name"
+        ],
+        "title": "DocumentIn",
+        "type": "object"
+      },
+      "DroppedValue": {
+        "description": "A value the LLM returned that is not in the OCR text.",
+        "properties": {
+          "field": {
+            "title": "Field",
+            "type": "string"
+          },
+          "reason": {
+            "title": "Reason",
+            "type": "string"
+          },
+          "value": {
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "field",
+          "value",
+          "reason"
+        ],
+        "title": "DroppedValue",
+        "type": "object"
+      },
+      "FaceMatchOverride": {
+        "additionalProperties": false,
+        "description": "Forced face match answer.",
+        "properties": {
+          "match_pct": {
+            "maximum": 100.0,
+            "minimum": 0.0,
+            "title": "Match Pct",
+            "type": "number"
+          },
+          "status": {
+            "default": "SUCCESS",
+            "enum": [
+              "SUCCESS",
+              "FAILED",
+              "PENDING"
+            ],
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "match_pct"
+        ],
+        "title": "FaceMatchOverride",
+        "type": "object"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "title": "Detail",
+            "type": "array"
+          }
+        },
+        "title": "HTTPValidationError",
+        "type": "object"
+      },
+      "HealthStatus": {
+        "description": "Liveness probe answer.",
+        "properties": {
+          "status": {
+            "const": "ok",
+            "default": "ok",
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "title": "HealthStatus",
+        "type": "object"
+      },
+      "Lead": {
+        "additionalProperties": false,
+        "description": "The saved lead: the base truth of every comparison.",
+        "properties": {
+          "applicant": {
+            "$ref": "#/components/schemas/ApplicantLead"
+          },
+          "application_no": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Application No"
+          },
+          "co_applicants": {
+            "items": {
+              "$ref": "#/components/schemas/CoApplicantLead"
+            },
+            "maxItems": 6,
+            "title": "Co Applicants",
+            "type": "array"
+          },
+          "lead_id": {
+            "anyOf": [
+              {
+                "maxLength": 64,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lead Id"
+          }
+        },
+        "required": [
+          "applicant"
+        ],
+        "title": "Lead",
+        "type": "object"
+      },
+      "LeadIn": {
+        "additionalProperties": false,
+        "description": "Body of ``POST /v1/cases/{case_id}/lead``.",
+        "properties": {
+          "lead": {
+            "$ref": "#/components/schemas/Lead"
+          }
+        },
+        "required": [
+          "lead"
+        ],
+        "title": "LeadIn",
+        "type": "object"
+      },
+      "LeadRecord": {
+        "description": "A stored lead.",
+        "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "created_at": {
+            "title": "Created At",
+            "type": "string"
+          },
+          "lead": {
+            "$ref": "#/components/schemas/Lead"
+          },
+          "source": {
+            "title": "Source",
+            "type": "string"
+          }
+        },
+        "required": [
+          "case_id",
+          "created_at",
+          "source",
+          "lead"
+        ],
+        "title": "LeadRecord",
+        "type": "object"
+      },
+      "PartyMockOverride": {
+        "additionalProperties": false,
+        "description": "Forces mocked third-party answers for one party (until the real APIs are connected).",
+        "properties": {
+          "bureau": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BureauOverride"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "email_ownership_verified": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email Ownership Verified"
+          },
+          "face_match": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FaceMatchOverride"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "pan_aadhaar_linked": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pan Aadhaar Linked"
+          },
+          "voter_dl": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VoterDlOverride"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "title": "PartyMockOverride",
+        "type": "object"
+      },
+      "RunResult": {
+        "description": "Result of one trigger: the orchestrator summary and each agent's report.",
+        "properties": {
+          "case_id": {
+            "title": "Case Id",
+            "type": "string"
+          },
+          "finished_at": {
+            "title": "Finished At",
+            "type": "string"
+          },
+          "orchestrator": {
+            "additionalProperties": true,
+            "title": "Orchestrator",
+            "type": "object"
+          },
+          "results": {
+            "additionalProperties": true,
+            "title": "Results",
+            "type": "object"
+          },
+          "run_id": {
+            "title": "Run Id",
+            "type": "string"
+          },
+          "started_at": {
+            "title": "Started At",
+            "type": "string"
+          },
+          "status": {
+            "title": "Status",
+            "type": "string"
+          }
+        },
+        "required": [
+          "run_id",
+          "case_id",
+          "status",
+          "started_at",
+          "finished_at",
+          "orchestrator",
+          "results"
+        ],
+        "title": "RunResult",
+        "type": "object"
+      },
+      "TriggerRequest": {
+        "additionalProperties": false,
+        "description": "Body of ``POST /v1/cases/{case_id}/trigger``: every document's OCR in one shot.",
+        "properties": {
+          "documents": {
+            "items": {
+              "$ref": "#/components/schemas/DocumentIn"
+            },
+            "maxItems": 200,
+            "minItems": 1,
+            "title": "Documents",
+            "type": "array"
+          },
+          "mock_overrides": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/PartyMockOverride"
+            },
+            "title": "Mock Overrides",
+            "type": "object"
+          }
+        },
+        "required": [
+          "documents"
+        ],
+        "title": "TriggerRequest",
+        "type": "object"
+      },
+      "ValidationError": {
+        "properties": {
+          "ctx": {
+            "title": "Context",
+            "type": "object"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "title": "Location",
+            "type": "array"
+          },
+          "msg": {
+            "title": "Message",
+            "type": "string"
+          },
+          "type": {
+            "title": "Error Type",
+            "type": "string"
+          }
+        },
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError",
+        "type": "object"
+      },
+      "VoterDlOverride": {
+        "additionalProperties": false,
+        "description": "Forced Karza Voter ID / DL answer.",
+        "properties": {
+          "status": {
+            "default": "VERIFIED",
+            "enum": [
+              "VERIFIED",
+              "NOT_VERIFIED"
+            ],
+            "title": "Status",
+            "type": "string"
+          },
+          "verified_on": {
+            "anyOf": [
+              {
+                "format": "date",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verified On"
+          }
+        },
+        "title": "VoterDlOverride",
+        "type": "object"
+      }
+    }
+  },
+  "info": {
+    "description": "Application-form auto-fill, lead creation (base truth) and the trigger that runs the Orchestrator Agent and the Anomaly Detection Agent. Rate limit: 60/minute per client (the health probe is exempt).",
+    "title": "Underwriting Copilot: Orchestrator + Anomaly Detection",
+    "version": "0.3.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/health": {
+      "get": {
+        "description": "Report that the service is running.\n\nReturns:\n    ``{\"status\": \"ok\"}``.",
+        "operationId": "health_health_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Liveness probe",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/cases/{case_id}/lead": {
+      "get": {
+        "description": "Return the saved lead of a case.\n\nArgs:\n    case_id: The case.\n    service: The case service.\n\nReturns:\n    The lead record.",
+        "operationId": "get_lead_v1_cases__case_id__lead_get",
+        "parameters": [
+          {
+            "description": "Case / application number",
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "description": "Case / application number",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read the saved lead",
+        "tags": [
+          "leads"
+        ]
+      },
+      "post": {
+        "description": "Save the lead of a case.\n\nArgs:\n    case_id: The case.\n    body: The reviewed lead.\n    service: The case service.\n\nReturns:\n    The stored lead record.",
+        "operationId": "create_lead_v1_cases__case_id__lead_post",
+        "parameters": [
+          {
+            "description": "Case / application number",
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "description": "Case / application number",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LeadIn"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LeadRecord"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Save the reviewed lead (base truth)",
+        "tags": [
+          "leads"
+        ]
+      }
+    },
+    "/v1/cases/{case_id}/result": {
+      "get": {
+        "description": "Return the latest result of a case.\n\nArgs:\n    case_id: The case.\n    service: The case service.\n\nReturns:\n    The run result.",
+        "operationId": "get_result_v1_cases__case_id__result_get",
+        "parameters": [
+          {
+            "description": "Case / application number",
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "description": "Case / application number",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read the latest result",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/v1/cases/{case_id}/trigger": {
+      "post": {
+        "description": "Run the Orchestrator Agent (and through it the Anomaly Detection Agent).\n\nArgs:\n    case_id: The case; its lead must exist.\n    body: Every document's OCR in one shot, plus the mock overrides.\n    service: The case service.\n\nReturns:\n    The run result with the orchestrator summary and the full report.",
+        "operationId": "trigger_v1_cases__case_id__trigger_post",
+        "parameters": [
+          {
+            "description": "Case / application number",
+            "in": "path",
+            "name": "case_id",
+            "required": true,
+            "schema": {
+              "description": "Case / application number",
+              "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$",
+              "title": "Case Id",
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TriggerRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResult"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Run the agents on a case",
+        "tags": [
+          "cases"
+        ]
+      }
+    },
+    "/v1/info": {
+      "get": {
+        "description": "Return what the UI shows in its header.\n\nArgs:\n    settings: Application settings.\n\nReturns:\n    Environment, region, the extraction model and the third-party provider.",
+        "operationId": "info_v1_info_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": true,
+                  "title": "Response Info V1 Info Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Model, region and provider in use",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/lead/autofill": {
+      "post": {
+        "description": "Read every lead field from the application form OCR. Nothing is stored.\n\nArgs:\n    body: The application form OCR and the names typed in the UI.\n    service: The auto-fill service.\n\nReturns:\n    The grounded lead fields for review.",
+        "operationId": "autofill_v1_lead_autofill_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AutofillRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AutofillResponse"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read the lead from an application form",
+        "tags": [
+          "leads"
+        ]
+      }
+    },
+    "/v1/samples": {
+      "get": {
+        "description": "List the example payloads.\n\nArgs:\n    settings: Application settings.\n\nReturns:\n    Example names.",
+        "operationId": "list_samples_v1_samples_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "title": "Response List Samples V1 Samples Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Names of the example payloads",
+        "tags": [
+          "system"
+        ]
+      }
+    },
+    "/v1/samples/{name}": {
+      "get": {
+        "description": "Return one example payload (synthetic data).\n\nArgs:\n    name: Example name.\n    settings: Application settings.\n\nReturns:\n    The example: case_id, lead, documents and mock_overrides.\n\nRaises:\n    HTTPException: 404 if the example does not exist.",
+        "operationId": "get_sample_v1_samples__name__get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "name",
+            "required": true,
+            "schema": {
+              "pattern": "^[A-Za-z0-9_-]{1,64}$",
+              "title": "Name",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Get Sample V1 Samples  Name  Get"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "One example payload",
+        "tags": [
+          "system"
+        ]
+      }
+    }
+  }
+}

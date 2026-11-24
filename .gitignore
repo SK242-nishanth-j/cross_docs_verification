@@ -1,19 +1,22 @@
 # Python
 __pycache__/
 *.py[cod]
-
-# Virtual environment
 .venv/
 venv/
-
-# Tool caches
 .pytest_cache/
-.ruff_cache/
 .mypy_cache/
-
-# Local settings and secrets (AWS keys for cross_verify_llm.py)
+.ruff_cache/
+# Node
+node_modules/
+dist/
+# Environment files: only the *.example templates are committed
 .env
 .env.*
-
-# Generated reports
-benchmark_results.json
+!.env.example
+*.local
+# Case data (runtime, never committed)
+backend/storage/
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,40 @@
+[tool.ruff]
+target-version = "py311"
+line-length = 88
+src = ["backend"]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "UP",  # pyupgrade
+    "S",   # bandit security
+    "T20", # flake8-print (no print statements)
+    "SIM", # flake8-simplify
+]
+ignore = [
+    "E501",  # line too long (handled by formatter)
+    "S101",  # assert statements (OK in tests)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["S101", "T20"]  # Allow asserts and prints in tests
+"scripts/*" = ["T20"]        # Allow prints in scripts
+"backend/scripts/*" = ["T20"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["src", "ai", "config"]
+force-single-line = true
+
+[tool.bandit]
+exclude_dirs = ["tests", "venv", ".venv"]
+skips = ["B101"]  # Skip assert_used test
+
+[tool.mypy]
+mypy_path = "backend"
+explicit_package_bases = true
+namespace_packages = true

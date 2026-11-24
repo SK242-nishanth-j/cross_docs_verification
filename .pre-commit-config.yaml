@@ -1,0 +1,108 @@
+default_language_version:
+  python: python3.12
+
+repos:
+  # Ruff - Ultrafast Python linter and formatter (MANDATORY)
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.6.5
+    hooks:
+      - id: ruff
+        name: ruff-linter
+        description: Run Ruff linter with auto-fix
+        args: [--fix, --exit-non-zero-on-fix]
+        types_or: [python, pyi, jupyter]
+
+      - id: ruff-format
+        name: ruff-formatter
+        description: Run Ruff formatter
+        types_or: [python, pyi, jupyter]
+
+  # Security checks (MANDATORY for GenAI)
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.7.5
+    hooks:
+      - id: bandit
+        name: security-check
+        description: Security vulnerability scanner
+        # Bandit's own hook definition pins "python3", which ignores
+        # default_language_version and picked an incompatible newest Python.
+        language_version: python3.12
+        args: ['-c', 'pyproject.toml', '--severity-level', 'medium']
+        # bandit 1.7.5 imports pbr at start-up but does not declare it.
+        additional_dependencies: ["bandit[toml]", "pbr"]
+
+  # Gitleaks - Fast secrets detection
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+        name: gitleaks-secrets-scan
+        description: Detect secrets with Gitleaks
+
+  # Type checking (RECOMMENDED)
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.7.1
+    hooks:
+      - id: mypy
+        name: type-check
+        description: Static type checking
+        # fastapi, pydantic and pydantic-settings are added so mypy can read
+        # their types; the rest is the ShellKode baseline.
+        additional_dependencies:
+          - types-requests
+          - types-boto3
+          - fastapi
+          - pydantic
+          - pydantic-settings
+          - strands-agents
+          - jinja2
+          - rapidfuzz
+          - types-pyyaml
+        args: [--ignore-missing-imports, --strict]
+
+  # File quality checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.5.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=1000']  # Prevent large model files
+      - id: debug-statements
+      - id: check-docstring-first
+      - id: name-tests-test
+        args: ['--pytest-test-first']
+
+  # GenAI-specific checks
+  - repo: local
+    hooks:
+      - id: check-prompt-files
+        name: validate-prompt-files
+        description: Validate prompt template files
+        entry: python scripts/validate_prompts.py
+        # "python" (not "system") so PyYAML is installed for the hook.
+        language: python
+        additional_dependencies: [pyyaml]
+        pass_filenames: false
+        files: ^backend/src/ai/prompts/.*\.(yaml|json|j2)$
+
+# Configuration
+fail_fast: false
+minimum_pre_commit_version: "3.0.0"
+exclude: |
+  (?x)^(
+      \.git/|
+      \.venv/|
+      venv/|
+      __pycache__/|
+      \.pytest_cache/|
+      \.mypy_cache/|
+      \.ruff_cache/|
+      build/|
+      dist/|
+      migrations/
+  )$
