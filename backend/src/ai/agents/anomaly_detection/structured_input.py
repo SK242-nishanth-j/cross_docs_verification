@@ -4,7 +4,7 @@ Purpose: Structured mode: key-value JSON -> lead fields and document fields, no 
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: stdlib only
 
-Every key path comes from structured_mapping.yaml, so a new form layout or a new
+Every key path comes from structured_mapping.json, so a new form layout or a new
 document layout needs a config change only. A document file is one document, or a
 case bundle with the documents of every person (person sections as on the form).
 """
@@ -61,7 +61,7 @@ def _scalar(value: Any) -> str | None:
 
 
 def field_value(spec: Any, data: Any, section: Any = None) -> str | None:
-    """Read one field as configured in structured_mapping.yaml.
+    """Read one field as configured in structured_mapping.json.
 
     A spec is a path; a list of specs (the first one with a value wins);
     ``{join: [specs], sep}`` (the values joined); or ``{join_all: path, sep}``
@@ -123,7 +123,7 @@ def application_form_lead(
 
     Args:
         data: The structured JSON of the application form.
-        mapping: The ``application_form`` section of structured_mapping.yaml.
+        mapping: The ``application_form`` section of structured_mapping.json.
 
     Returns:
         (lead fields for review, ``{field path: "structured"}`` for every field read).
@@ -176,7 +176,7 @@ def document_type(named: str | None, chosen: str, mapping: dict[str, Any]) -> st
     Args:
         named: The "Document Type" text of the JSON, for example "PAN Card".
         chosen: Type chosen in the UI (guessed from the file name).
-        mapping: The ``documents`` section of structured_mapping.yaml.
+        mapping: The ``documents`` section of structured_mapping.json.
 
     Returns:
         One of the document types.
@@ -253,7 +253,7 @@ def read_documents(
 
     Args:
         documents: The uploaded JSON files.
-        mapping: The ``documents`` section of structured_mapping.yaml.
+        mapping: The ``documents`` section of structured_mapping.json.
         known: The party IDs of the lead.
 
     Returns:

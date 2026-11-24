@@ -87,7 +87,7 @@ def to_blocks(content: bytes, vision: dict[str, Any]) -> list[ContentBlock]:
 
     Args:
         content: File bytes.
-        vision: The ``vision`` section of anomaly_config.yaml.
+        vision: The ``vision`` section of anomaly_config.json.
 
     Returns:
         One image block per page, or one PDF document block.

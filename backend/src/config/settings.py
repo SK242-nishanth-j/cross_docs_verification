@@ -1,10 +1,11 @@
 """
 File: settings.py
-Purpose: Validated settings from environment variables, plus the YAML configuration files.
+Purpose: Validated settings from environment variables, plus the JSON configuration files.
 Owner: genai-platform@shellkode
-Created: 2026-11-24 | Deps: pydantic, pydantic-settings, pyyaml
+Created: 2026-11-24 | Deps: pydantic, pydantic-settings
 """
 
+import json
 import os
 from functools import lru_cache
 from pathlib import Path
@@ -12,7 +13,6 @@ from typing import Any
 from typing import Literal
 from typing import get_args
 
-import yaml
 from pydantic import Field
 from pydantic import SecretStr
 from pydantic import field_validator
@@ -73,14 +73,14 @@ class Settings(BaseSettings):
     autofill_max_ocr_chars: int = Field(default=60_000, ge=5_000, le=100_000)
     max_documents: int = Field(default=60, ge=1, le=200)
 
-    # Anomaly Detection mode; empty uses "mode" in anomaly_config.yaml.
+    # Anomaly Detection mode; empty uses "mode" in anomaly_config.json.
     anomaly_mode: Mode | None = None
 
     # Storage and configuration files.
     data_dir: Path = Path("storage")
     samples_dir: Path = Path("contracts/examples")
-    anomaly_config_path: Path = _SRC_DIR / "config" / "anomaly_config.yaml"
-    structured_mapping_path: Path = _SRC_DIR / "config" / "structured_mapping.yaml"
+    anomaly_config_path: Path = _SRC_DIR / "config" / "anomaly_config.json"
+    structured_mapping_path: Path = _SRC_DIR / "config" / "structured_mapping.json"
     cross_verify_config_path: Path = _CROSS_VERIFY_CONFIG
 
     # HTTP.
@@ -138,18 +138,17 @@ def get_settings() -> Settings:
     return Settings()
 
 
-def _read_yaml(path: Path) -> dict[str, Any]:
-    """Read one YAML mapping."""
-    with path.open(encoding="utf-8") as handle:
-        data: Any = yaml.safe_load(handle)
+def _read_json(path: Path) -> dict[str, Any]:
+    """Read one JSON object from a configuration file."""
+    data: Any = json.loads(path.read_text(encoding="utf-8"))
     if not isinstance(data, dict):
-        raise ValueError(f"{path.name}: expected a mapping at the top")
+        raise ValueError(f"{path.name}: expected a JSON object at the top")
     return data
 
 
 @lru_cache(maxsize=1)
 def get_anomaly_config() -> dict[str, Any]:
-    """Return anomaly_config.yaml with the effective ``mode`` filled in.
+    """Return anomaly_config.json with the effective ``mode`` filled in.
 
     Returns:
         The configuration; ``mode`` is ``ANOMALY_MODE`` when set, else the file's.
@@ -158,7 +157,7 @@ def get_anomaly_config() -> dict[str, Any]:
         ValueError: If the mode is unknown or has no ``modes`` entry.
     """
     settings = get_settings()
-    config = _read_yaml(settings.anomaly_config_path)
+    config = _read_json(settings.anomaly_config_path)
     mode = settings.anomaly_mode or config.get("mode")
     if mode not in MODES or mode not in config.get("modes", {}):
         raise ValueError(f"anomaly mode must be one of {', '.join(MODES)}")
@@ -168,9 +167,9 @@ def get_anomaly_config() -> dict[str, Any]:
 
 @lru_cache(maxsize=1)
 def get_structured_mapping() -> dict[str, Any]:
-    """Return structured_mapping.yaml (key paths of the structured JSON files).
+    """Return structured_mapping.json (key paths of the structured JSON files).
 
     Returns:
         The mapping configuration.
     """
-    return _read_yaml(get_settings().structured_mapping_path)
+    return _read_json(get_settings().structured_mapping_path)

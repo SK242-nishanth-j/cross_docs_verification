@@ -6,13 +6,13 @@ SK pre-commit gate (ruff, ruff-format, bandit, gitleaks, mypy --strict, file che
 
 ## Modes (backend configuration only)
 
-Set `mode` in `backend/src/config/anomaly_config.yaml` (or `ANOMALY_MODE` in `.env`). The UI reads
+Set `mode` in `backend/src/config/anomaly_config.json` (or `ANOMALY_MODE` in `.env`). The UI reads
 the mode from `GET /v1/info` and offers the matching uploads.
 
 | Mode | Upload | Reads the documents | Compares | Model |
 |---|---|---|---|---|
 | `vision_llm` | PDF / images | vision LLM | the same LLM call (one per person) | Qwen3 VL 235B |
-| `structured` | key-value JSON | code, `structured_mapping.yaml` | `cross_verify` | none |
+| `structured` | key-value JSON | code, `structured_mapping.json` | `cross_verify` | none |
 | `ocr_llm` | raw OCR JSON / text | LLM | the same LLM call (one per person) | Qwen3 32B |
 | `ocr_hybrid` | raw OCR JSON / text | LLM per document (grounded) | `cross_verify` | Qwen3 32B |
 
@@ -65,7 +65,7 @@ Other scripts, from `dev/backend`:
   JSON per document, or one case file laid out like `case1_structured.json` (each person section
   with its `Documents` list; each document has `File`, `Document Type` and `Fields`). In a case
   file the person comes from the section, and every document is read and stored on its own.
-  All key paths: `structured_mapping.yaml`.
+  All key paths: `structured_mapping.json`.
 - **ocr_llm / ocr_hybrid**: OCR JSON as produced (`{"status": ..., "pages": [{"page_number": 1,
   "text_lines": [...], "structured_lines": [...]}]}`) or plain text. A payload JSON
   (`{"documents": [{"party_id", "doc_type", "file_name", "ocr"}]}`) and the samples also work.
@@ -114,10 +114,48 @@ backend/src/
     cross_verify/                  the engine: common, config, names, dates, address_parser,
                                    addresses, numbers, contacts, short_text, checks, engine
   ai/prompts/                      manager.py, templates/*.j2, configs/*.yaml (model per prompt)
-  config/                          settings.py, anomaly_config.yaml, structured_mapping.yaml
+  config/                          settings.py, anomaly_config.json, structured_mapping.json
   security/                        rate_limit, request_limits, uploads, pii (Aadhaar masking)
   utils/                           images (PDF / image blocks), ocr_text, logging/
 ```
+
+## Configuration files
+
+JSON has no comments, so the keys are explained here. The prompt configs
+(`ai/prompts/configs/*.yaml`) stay YAML, as the ShellKode practice asks.
+
+**`backend/src/config/anomaly_config.json`**
+
+| Key | Meaning |
+|---|---|
+| `mode` | `vision_llm`, `structured`, `ocr_llm` or `ocr_hybrid` (see Modes). `ANOMALY_MODE` in `.env` overrides it. |
+| `modes.<mode>` | `label` shown in the UI, `accepts` (file extensions the API takes), and the prompt names: `application_form_prompt`, `verification_prompt` (full LLM) or `extraction_prompt` (hybrid). The model of each prompt is in its prompt config. |
+| `storage` | `keep_uploads` and `keep_extracted_json` switch file storage on or off; `application_form_dir` and `documents_dir` name the folders (layout under Storage). |
+| `vision` | Bedrock Converse limits: `max_images_per_call` (20), `max_image_bytes` (3.75 MB), `max_image_px` (8000). A person with more pages is sent in several calls. `pdf_input`: `images` renders each PDF page at `pdf_render_dpi`; `document` sends the PDF as it is. |
+| `lead_address_fields` | Lead address(es) compared with the documents: `["address"]` (current) for now; add `"permanent_address"` once the client confirms. |
+| `id_patterns` | Passport and driving-licence number formats (used to place the form's one "Passport/ DL. No" box). |
+| `fields_by_doc_type` | Fields the LLM is told to look for on each document type. |
+| `checks` | The cross-checks in checklist order: `label`, `severity`, `mitigant`. No rule numbers. |
+| `third_party` | Mocked APIs: bureau address window (months), face-match minimum (%), Voter ID / DL window (days, `null` = none), the PAN-link sanction condition, mock defaults, and each check's `label`, `title`, `severity`, `mitigant`. |
+
+**`backend/src/config/structured_mapping.json`** (structured mode, no LLM)
+
+- A path joins keys with `.`. A path starting with `$.` starts at the top of the file; any other
+  path starts inside the person's section. Keys may themselves contain dots (`Passport/ DL. No`).
+- A field is one path; a list of paths (the first one with a value wins); `{"join": [...], "sep": " "}`
+  (values joined: names with a space, addresses with `", "`); or `{"join_all": "Address", "sep": ", "}`
+  (every part of one object, for addresses split into lines, VTC, PIN code, ...).
+- `application_form`: `applicant.section` and `co_applicants.section` (`Co-Applicant {n}`, read
+  until a section is missing, at most `max`); `person_fields` apply to everyone. A permanent
+  address with `same_as_above` true and no value takes the current address.
+- `documents.bundle`: the case-file layout (person sections, `Documents` list, `File` key).
+  `fields_key` (`Fields`) holds the values of a document; without it the entry itself is read.
+- `documents.document_types`: the `Document Type` text must start with one of the names; anything
+  else is `OTHER` (name and date of birth are still compared).
+- `documents.fields`: per type, the keys read into name, father_name, mother_name, spouse_name,
+  dob, gender, address and id_number. Not mapped on purpose: the voter ID's
+  "Father / Mother / Husband's Name" box (usually the husband for a married woman) and the offer
+  letter's "Addressee" (name and address together).
 
 ## Storage
 

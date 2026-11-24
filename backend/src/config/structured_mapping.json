@@ -1,0 +1,277 @@
+{
+  "application_form": {
+    "application_no": "$.Office Use Details.Application No/ SL No",
+    "lead_id": "$.Office Use Details.Lead Id",
+    "applicant": {
+      "section": "Applicant",
+      "fields": {
+        "passport_or_dl_number": "Passport/ DL. No",
+        "admission_status": "$.Course Details.Admission Status",
+        "university": "$.Course Details.University",
+        "course": "$.Course Details.Course Name",
+        "country": "$.Course Details.Country"
+      }
+    },
+    "co_applicants": {
+      "section": "Co-Applicant {n}",
+      "max": 6,
+      "relationship": "Relationship with Applicant",
+      "fields": {
+        "passport_or_dl_number": "Passport/ DL. No",
+        "bank_name": "Bank Details (Transactional A/C).Name of Bank",
+        "account_number": "Bank Details (Transactional A/C).Account Number",
+        "employer_name": "Employment or Business Details.Name of the Current Employer or Business/Firm",
+        "employer_address": {
+          "join": [
+            "Employment or Business Details.Address of the Employer or Business/Firm.Address",
+            "Employment or Business Details.Address of the Employer or Business/Firm.Landmark",
+            "Employment or Business Details.Address of the Employer or Business/Firm.City",
+            "Employment or Business Details.Address of the Employer or Business/Firm.District",
+            "Employment or Business Details.Address of the Employer or Business/Firm.State",
+            "Employment or Business Details.Address of the Employer or Business/Firm.Pincode",
+            "Employment or Business Details.Address of the Employer or Business/Firm.Country"
+          ],
+          "sep": ", "
+        }
+      }
+    },
+    "person_fields": {
+      "name": {
+        "join": [
+          "Name.First Name",
+          "Name.Middle Name",
+          "Name.Last Name"
+        ],
+        "sep": " "
+      },
+      "father_name": {
+        "join": [
+          "Father/ Spouse Name.First Name",
+          "Father/ Spouse Name.Middle Name",
+          "Father/ Spouse Name.Last Name"
+        ],
+        "sep": " "
+      },
+      "mother_name": {
+        "join": [
+          "Mother's Name.First Name",
+          "Mother's Name.Middle Name",
+          "Mother's Name.Last Name"
+        ],
+        "sep": " "
+      },
+      "dob": "Date of Birth",
+      "gender": "Gender",
+      "mobile": "Mobile No",
+      "email": "Email ID",
+      "pan": "PAN No",
+      "aadhaar_last4": "Aadhar No.Number",
+      "voter_id": "Voter ID",
+      "address": {
+        "join": [
+          "Current Address.Address",
+          "Current Address.Landmark",
+          "Current Address.City",
+          "Current Address.District",
+          "Current Address.State",
+          "Current Address.Pincode",
+          "Current Address.Country"
+        ],
+        "sep": ", "
+      },
+      "permanent_address": {
+        "join": [
+          "Permanent Address.Address",
+          "Permanent Address.Landmark",
+          "Permanent Address.City",
+          "Permanent Address.District",
+          "Permanent Address.State",
+          "Permanent Address.Pincode",
+          "Permanent Address.Country"
+        ],
+        "sep": ", ",
+        "same_as_above": "Permanent Address.Same as Above",
+        "same_as": "address"
+      }
+    }
+  },
+  "documents": {
+    "document_type_key": "Document Type",
+    "fields_key": "Fields",
+    "bundle": {
+      "applicant_section": "Applicant",
+      "co_applicant_section": "Co-Applicant {n}",
+      "max_co_applicants": 6,
+      "documents_key": "Documents",
+      "file_key": "File"
+    },
+    "document_types": {
+      "PAN": [
+        "pan card",
+        "pan",
+        "permanent account number card"
+      ],
+      "AADHAAR": [
+        "aadhaar",
+        "aadhar",
+        "e-aadhaar"
+      ],
+      "PASSPORT": [
+        "passport"
+      ],
+      "VOTER_ID": [
+        "voter id",
+        "epic",
+        "elector photo identity card"
+      ],
+      "DRIVING_LICENCE": [
+        "driving licence",
+        "driving license"
+      ],
+      "MARKSHEET": [
+        "10th marksheet",
+        "12th marksheet",
+        "marksheet",
+        "mark sheet",
+        "marks statement"
+      ],
+      "DEGREE_CERTIFICATE": [
+        "undergraduate consolidated",
+        "consolidated statement of grades",
+        "degree certificate",
+        "provisional certificate"
+      ],
+      "ADMIT_LETTER": [
+        "conditional offer letter",
+        "offer letter",
+        "admit letter",
+        "admission letter"
+      ]
+    },
+    "fields": {
+      "PAN": {
+        "name": "Name",
+        "father_name": "Father's Name",
+        "dob": "Date of Birth",
+        "id_number": [
+          "Permanent Account Number",
+          "PAN"
+        ]
+      },
+      "AADHAAR": {
+        "name": "Name",
+        "dob": "Date of Birth",
+        "gender": "Gender",
+        "father_name": [
+          "Father's Name",
+          "S/O"
+        ],
+        "address": {
+          "join_all": "Address",
+          "sep": ", "
+        },
+        "id_number": [
+          "Your Aadhaar No.",
+          "Aadhaar No.",
+          "Aadhaar Number"
+        ]
+      },
+      "PASSPORT": {
+        "name": {
+          "join": [
+            "Given Name(s)",
+            "Surname"
+          ],
+          "sep": " "
+        },
+        "dob": "Date of Birth",
+        "gender": "Sex",
+        "id_number": [
+          "Passport No.",
+          "Passport No"
+        ],
+        "father_name": "Name of Father / Legal Guardian",
+        "mother_name": "Name of Mother",
+        "spouse_name": "Name of Spouse",
+        "address": "Address"
+      },
+      "VOTER_ID": {
+        "name": "Elector's Name",
+        "father_name": "Father's Name",
+        "gender": "Sex",
+        "dob": "Date of Birth",
+        "address": {
+          "join_all": "Address",
+          "sep": ", "
+        },
+        "id_number": [
+          "Card No.",
+          "EPIC No"
+        ]
+      },
+      "DRIVING_LICENCE": {
+        "name": "Name",
+        "father_name": [
+          "Son/Daughter/Wife of",
+          "S/D/W of"
+        ],
+        "dob": "Date of Birth",
+        "address": {
+          "join_all": "Address",
+          "sep": ", "
+        },
+        "id_number": [
+          "DL No",
+          "Licence No."
+        ]
+      },
+      "MARKSHEET": {
+        "name": [
+          "Candidate Name",
+          "Name of the Candidate",
+          "Name"
+        ],
+        "father_name": "Father's Name",
+        "mother_name": "Mother's Name",
+        "dob": "Date of Birth"
+      },
+      "DEGREE_CERTIFICATE": {
+        "name": [
+          "Name of the Candidate",
+          "Candidate Name",
+          "Name"
+        ],
+        "father_name": "Father's Name",
+        "mother_name": "Mother's Name",
+        "dob": "Date of Birth"
+      },
+      "ADMIT_LETTER": {
+        "name": [
+          "Student Name",
+          "Name of the Student"
+        ],
+        "dob": "Date of Birth"
+      },
+      "OTHER": {
+        "name": [
+          "Name",
+          "Consumer Information.Name",
+          {
+            "join": [
+              "Candidate Details.First Name(s)",
+              "Candidate Details.Family Name"
+            ],
+            "sep": " "
+          },
+          "Primary Holder",
+          "Full Name and Address of the declarant.Name (handwritten)"
+        ],
+        "dob": [
+          "Date of Birth",
+          "Consumer Information.Date of Birth",
+          "Candidate Details.Date of Birth"
+        ]
+      }
+    }
+  }
+}

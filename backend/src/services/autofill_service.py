@@ -4,7 +4,7 @@ Purpose: Application form -> lead fields for review, in the configured mode; sto
 Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: pydantic, strands-agents
 
-structured  key-value JSON -> lead through structured_mapping.yaml (no LLM)
+structured  key-value JSON -> lead through structured_mapping.json (no LLM)
 vision_llm  page images / PDF -> vision LLM
 ocr_*       OCR JSON or text -> LLM; every value must be found in the OCR text
 """

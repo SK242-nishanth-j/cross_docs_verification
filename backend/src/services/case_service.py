@@ -5,7 +5,7 @@ Owner: genai-platform@shellkode
 Created: 2026-11-24 | Deps: pydantic
 
 Every uploaded file and the JSON read from it are stored file by file under the
-case (see the ``storage`` section of anomaly_config.yaml).
+case (see the ``storage`` section of anomaly_config.json).
 """
 
 import datetime as dt
